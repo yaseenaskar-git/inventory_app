@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+
+# Database
+db.sqlite3
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.mo
+*.swp
+*.sqlite3
+*.coverage
+*.egg-info/
+*.DS_Store
+
+# VSCode
+.vscode/

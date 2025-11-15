@@ -23,6 +23,7 @@ class UserAuthenticationTest(TestCase):
 
     def test_register_user_success(self):
         data = {
+            'username': 'testuser',
             'email': 'testuser@example.com',
             'password1': 'SecurePassword123!',
             'password2': 'SecurePassword123!',
@@ -30,10 +31,12 @@ class UserAuthenticationTest(TestCase):
         response = self.client.post(self.register_url, data)
         self.assertEqual(response.status_code, 302)  # Redirect after successful registration
         self.assertTrue(User.objects.filter(email='testuser@example.com').exists())
+        self.assertTrue(User.objects.filter(username='testuser').exists())
 
     def test_register_duplicate_email(self):
-        User.objects.create_user(username='test@example.com', email='test@example.com', password='TestPass123!')
+        User.objects.create_user(username='test1', email='test@example.com', password='TestPass123!')
         data = {
+            'username': 'test2',
             'email': 'test@example.com',
             'password1': 'SecurePassword123!',
             'password2': 'SecurePassword123!',
@@ -43,6 +46,7 @@ class UserAuthenticationTest(TestCase):
 
     def test_register_password_mismatch(self):
         data = {
+            'username': 'newuser',
             'email': 'newuser@example.com',
             'password1': 'SecurePassword123!',
             'password2': 'DifferentPassword123!',
@@ -51,7 +55,7 @@ class UserAuthenticationTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_login_success(self):
-        User.objects.create_user(username='test@example.com', email='test@example.com', password='TestPass123!')
+        User.objects.create_user(username='testuser', email='test@example.com', password='TestPass123!')
         data = {
             'email': 'test@example.com',
             'password': 'TestPass123!',
@@ -73,14 +77,14 @@ class UserAuthenticationTest(TestCase):
         self.assertEqual(response.status_code, 302)  # Redirect to login
 
     def test_dashboard_accessible_when_authenticated(self):
-        user = User.objects.create_user(username='test@example.com', email='test@example.com', password='TestPass123!')
-        self.client.login(username='test@example.com', password='TestPass123!')
+        user = User.objects.create_user(username='testuser', email='test@example.com', password='TestPass123!')
+        self.client.login(username='testuser', password='TestPass123!')
         response = self.client.get(self.dashboard_url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/dashboard.html')
 
     def test_logout(self):
-        user = User.objects.create_user(username='test@example.com', email='test@example.com', password='TestPass123!')
-        self.client.login(username='test@example.com', password='TestPass123!')
+        user = User.objects.create_user(username='testuser', email='test@example.com', password='TestPass123!')
+        self.client.login(username='testuser', password='TestPass123!')
         response = self.client.get(self.logout_url)
         self.assertEqual(response.status_code, 302)
