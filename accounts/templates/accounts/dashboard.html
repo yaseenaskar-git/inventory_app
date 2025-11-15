@@ -1,0 +1,56 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Dashboard - Inventory Manager{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="row mb-4">
+        <div class="col-12 col-md-6 mb-3 mb-md-0">
+            <h1 style="color: #667eea; font-weight: bold; font-size: clamp(20px, 5vw, 32px); margin: 0;">
+                Welcome, {{ user.username }}! 👋
+            </h1>
+        </div>
+        <div class="col-12 col-md-6 d-flex justify-content-md-end">
+            <a href="{% url 'logout' %}" class="btn btn-danger" style="width: 100%; max-width: 150px;">Logout</a>
+        </div>
+    </div>
+    
+    <div class="alert alert-info" style="margin-bottom: 30px;">
+        <strong>Dashboard Coming Soon!</strong> This is your inventory management dashboard. More features will be added soon.
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-6 mb-4">
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 25px; height: 100%; background: #f9f9f9; transition: box-shadow 0.3s ease;">
+                <h5 style="color: #667eea; font-size: clamp(16px, 3vw, 18px); font-weight: bold; margin-bottom: 15px;">📦 Inventories</h5>
+                <p style="color: #666; margin-bottom: 20px; font-size: clamp(14px, 2vw, 16px);">Manage your inventories and items.</p>
+                <button class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">Coming Soon</button>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 mb-4">
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 25px; height: 100%; background: #f9f9f9; transition: box-shadow 0.3s ease;">
+                <h5 style="color: #667eea; font-size: clamp(16px, 3vw, 18px); font-weight: bold; margin-bottom: 15px;">📊 Analytics</h5>
+                <p style="color: #666; margin-bottom: 20px; font-size: clamp(14px, 2vw, 16px);">View reports and analytics.</p>
+                <button class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">Coming Soon</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12 col-md-6 mb-4">
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 25px; height: 100%; background: #f9f9f9; transition: box-shadow 0.3s ease;">
+                <h5 style="color: #667eea; font-size: clamp(16px, 3vw, 18px); font-weight: bold; margin-bottom: 15px;">⚙️ Settings</h5>
+                <p style="color: #666; margin-bottom: 20px; font-size: clamp(14px, 2vw, 16px);">Manage your account preferences.</p>
+                <button class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">Coming Soon</button>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 mb-4">
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 25px; height: 100%; background: #f9f9f9; transition: box-shadow 0.3s ease;">
+                <h5 style="color: #667eea; font-size: clamp(16px, 3vw, 18px); font-weight: bold; margin-bottom: 15px;">📝 Activity</h5>
+                <p style="color: #666; margin-bottom: 20px; font-size: clamp(14px, 2vw, 16px);">View your recent activity.</p>
+                <button class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">Coming Soon</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
