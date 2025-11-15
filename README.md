@@ -21,3 +21,11 @@ The Inventory App is an application that allows users to create various inventor
 ## Images of Application and Installation Process
 
 (this section will be updated shortly once the app is ready!)
+
+## Usage Examples 
+
+(this section will be updated shortly!)
+
+## AI Integration Details
+
+
