@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .forms import RegisterForm, LoginForm, InventoryForm
 from .models import Inventory
 import json
-from .forms import ItemForm, CategoryForm
+from .forms import ItemForm
 from .models import Item, Category, ActivityLog
 from sorl.thumbnail import get_thumbnail
 
@@ -161,32 +161,16 @@ class ItemListView(LoginRequiredMixin, View):
         inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
         items_qs = Item.objects.filter(inventory=inventory)
 
-        # Filtering by category
-        category_id = request.GET.get('category')
-        if category_id and category_id != 'all':
-            items_qs = items_qs.filter(category_id=category_id)
-
-        # Search
-        q = request.GET.get('q')
-        if q:
-            items_qs = items_qs.filter(name__icontains=q)
-
         # Sorting
         sort = request.GET.get('sort')
-        if sort == 'name_asc':
-            items_qs = items_qs.order_by('name')
-        elif sort == 'name_desc':
-            items_qs = items_qs.order_by('-name')
-        elif sort == 'qty_asc':
-            items_qs = items_qs.order_by('quantity')
-        elif sort == 'qty_desc':
-            items_qs = items_qs.order_by('-quantity')
-        elif sort == 'exp_asc':
+        if sort == 'expiry_asc':
             items_qs = items_qs.order_by('expiration_date')
-        elif sort == 'exp_desc':
+        elif sort == 'expiry_desc':
             items_qs = items_qs.order_by('-expiration_date')
-
-        categories = Category.objects.filter(user=request.user)
+        elif sort == 'quantity_asc':
+            items_qs = items_qs.order_by('quantity')
+        elif sort == 'quantity_desc':
+            items_qs = items_qs.order_by('-quantity')
 
         # Pagination (optional)
         paginator = Paginator(items_qs, 60)
@@ -196,7 +180,6 @@ class ItemListView(LoginRequiredMixin, View):
         return render(request, 'accounts/inventory_items.html', {
             'inventory': inventory,
             'items': items,
-            'categories': categories,
         })
 
 

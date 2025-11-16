@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from .models import Inventory
-from .models import Item, Category
+from .models import Item
 
 
 class RegisterForm(UserCreationForm):
@@ -125,16 +125,6 @@ class InventoryForm(forms.ModelForm):
         return name
 
 
-class CategoryForm(forms.ModelForm):
-    class Meta:
-        model = Category
-        fields = ('name',)
-        widgets = {
-            'name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Category name'
-            })
-        }
 
 
 class ItemForm(forms.ModelForm):
@@ -142,11 +132,10 @@ class ItemForm(forms.ModelForm):
 
     class Meta:
         model = Item
-        fields = ('name', 'quantity', 'category', 'brand', 'description', 'expiration_date', 'image')
+        fields = ('name', 'quantity', 'brand', 'description', 'expiration_date', 'image')
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Item name'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
-            'category': forms.Select(attrs={'class': 'form-select'}),
             'brand': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Brand (optional)'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Description (optional)'}),
             'expiration_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),

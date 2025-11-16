@@ -6,47 +6,29 @@
 {% block content %}
 <div class="dashboard-container">
     <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h2 style="color:#667eea;">{{ inventory.emoji }} {{ inventory.name }}</h2>
-            <p class="text-muted">Manage items inside this inventory.</p>
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">← Back to Dashboard</a>
+            <div>
+                <h2 style="color:#667eea;">{{ inventory.emoji }} {{ inventory.name }}</h2>
+                <p class="text-muted">Manage items inside this inventory.</p>
+            </div>
         </div>
         <div class="d-flex gap-2">
-            <div class="input-group">
-                <input id="searchInput" class="form-control" placeholder="Search items..." />
-            </div>
-            <select id="categoryFilter" class="form-select">
-                <option value="all">All categories</option>
-                {% for cat in categories %}
-                    <option value="{{ cat.id }}">{{ cat.name }}</option>
-                {% endfor %}
-            </select>
-            <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#createCategoryModal" title="Create new category">➕ Category</button>
-            <select id="sortSelect" class="form-select">
-                <option value="">Sort</option>
-                <option value="name_asc">Name A–Z</option>
-                <option value="name_desc">Name Z–A</option>
-                <option value="qty_asc">Quantity low→high</option>
-                <option value="qty_desc">Quantity high→low</option>
-                <option value="exp_asc">Exp. soon→late</option>
-                <option value="exp_desc">Exp. late→soon</option>
+            <select id="sortSelect" class="form-select" style="max-width:220px;">
+                <option value="expiry_asc">Expiry: Soon → Late</option>
+                <option value="expiry_desc">Expiry: Late → Soon</option>
+                <option value="quantity_asc">Quantity: Low → High</option>
+                <option value="quantity_desc">Quantity: High → Low</option>
             </select>
             <button id="createItemBtn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#itemModal">➕ Add Item</button>
         </div>
     </div>
 
-    <div class="mb-2 d-flex align-items-center gap-2">
-        <button id="toggleSelectBtn" class="btn btn-outline-secondary">Select Multiple</button>
-        <div id="bulkActions" class="d-none">
-            <button id="bulkDelete" class="btn btn-danger">Delete Selected</button>
-            <button id="bulkIncrease" class="btn btn-secondary">Increase qty</button>
-            <button id="bulkDecrease" class="btn btn-secondary">Decrease qty</button>
-        </div>
-    </div>
+    <!-- Select multiple and bulk actions removed -->
 
     <div id="itemsGrid" class="inventory-grid">
         {% for item in items %}
             <div class="inventory-card" data-item-id="{{ item.id }}">
-                <input type="checkbox" class="select-checkbox d-none" />
                 <button class="btn btn-sm btn-link edit-item-btn" data-item-id="{{ item.id }}" style="position:absolute; right:8px; top:8px;">✏️</button>
                 <div class="inventory-emoji">
                     {% if item.image %}
@@ -58,7 +40,6 @@
                     {% endif %}
                 </div>
                 <div class="inventory-name">{{ item.name }}</div>
-                <div class="text-muted small">{% if item.category %}{{ item.category.name }}{% endif %}</div>
                 <div class="inventory-footer mt-3">
                     <div class="d-flex gap-2">
                         <button class="btn btn-sm btn-outline-secondary qty-decrease" data-item-id="{{ item.id }}">-</button>
