@@ -27,7 +27,8 @@
             <!-- Inventory Grid -->
             <div class="inventory-grid">
                 {% for inventory in inventories %}
-                    <div class="inventory-card">
+                    <div class="inventory-card position-relative">
+                        <button class="btn btn-sm btn-link edit-inventory-btn" data-inventory-id="{{ inventory.id }}" style="position:absolute; right:8px; top:8px;">✏️</button>
                         <div class="inventory-emoji">{{ inventory.emoji }}</div>
                         <div class="inventory-name">{{ inventory.name }}</div>
                         <div class="inventory-footer">

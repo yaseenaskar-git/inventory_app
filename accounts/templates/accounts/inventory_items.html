@@ -74,32 +74,6 @@
     </div>
 </div>
 
-<!-- Create Category Modal -->
-<div class="modal fade" id="createCategoryModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header" style="border-bottom: 2px solid #667eea;">
-                <h5 class="modal-title" style="color:#667eea; font-weight:bold;">Create New Category</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="createCategoryForm">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Category name</label>
-                        <input id="categoryName" name="name" class="form-control" placeholder="e.g., Frozen Foods" required />
-                    </div>
-                    <div id="categoryFormAlert" class="alert d-none" role="alert"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-info" id="saveCategoryBtn">Create</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- Item Modal (used for create & edit) -->
 <div class="modal fade" id="itemModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -122,15 +96,6 @@
                                 <div style="flex:1">
                                     <label class="form-label">Quantity</label>
                                     <input id="itemQuantity" name="quantity" type="number" class="form-control" min="0" value="0" required />
-                                </div>
-                                <div style="flex:1">
-                                    <label class="form-label">Category</label>
-                                    <select id="itemCategory" name="category" class="form-select">
-                                        <option value="">(none)</option>
-                                        {% for cat in categories %}
-                                            <option value="{{ cat.id }}">{{ cat.name }}</option>
-                                        {% endfor %}
-                                    </select>
                                 </div>
                             </div>
                             <div class="mb-3">
@@ -161,11 +126,7 @@
 
                     <div id="itemFormAlert" class="alert d-none" role="alert"></div>
 
-                    <hr />
-                    <div>
-                        <button type="button" class="btn btn-link" id="toggleLogs">Show activity log</button>
-                        <div id="activityLog" class="mt-2 d-none" style="max-height:200px; overflow:auto;"></div>
-                    </div>
+                    <!-- Activity log removed -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-danger d-none" id="deleteItemBtn">Delete Item</button>
@@ -232,23 +193,11 @@ document.querySelectorAll('.edit-item-btn').forEach(btn=>{
             imagePreview.innerHTML = '';
             document.getElementById('removeImageWrap').classList.add('d-none');
         }
-        if(item.category){
-            document.getElementById('itemCategory').value = item.category_id || '';
-        }
         document.getElementById('deleteItemBtn').classList.remove('d-none');
         // show modal
         const modalEl = document.getElementById('itemModal');
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
-
-        // populate logs
-        const logs = res.logs || [];
-        const logContainer = document.getElementById('activityLog');
-        logContainer.innerHTML = logs.map(l=>`<div class="small"><strong>${l.action}</strong> — ${l.note || ''} <span class="text-muted">${l.timestamp}</span></div>`).join('');
-        
-        // Show activity log by default on edit
-        logContainer.classList.remove('d-none');
-        document.getElementById('toggleLogs').textContent = 'Hide activity log';
     });
 });
 
@@ -301,21 +250,10 @@ document.querySelectorAll('.qty-decrease').forEach(btn=>{
     });
 });
 
-// Simple live search
-const searchInput = document.getElementById('searchInput');
-searchInput?.addEventListener('input', debounce(()=>{
-    const q = searchInput.value.trim();
-    const params = new URLSearchParams(window.location.search);
-    params.set('q', q);
-    window.location.search = params.toString();
-}, 300));
-
 // Filter and sort
-document.getElementById('categoryFilter')?.addEventListener('change', ()=>{ applyFilters(); });
 document.getElementById('sortSelect')?.addEventListener('change', ()=>{ applyFilters(); });
 function applyFilters(){
     const params = new URLSearchParams(window.location.search);
-    params.set('category', document.getElementById('categoryFilter').value);
     params.set('sort', document.getElementById('sortSelect').value);
     window.location.search = params.toString();
 }
@@ -348,61 +286,6 @@ document.getElementById('bulkDecrease').addEventListener('click', async ()=>{ co
 // Toggle logs
 document.getElementById('toggleLogs').addEventListener('click', ()=>{
     const el = document.getElementById('activityLog'); el.classList.toggle('d-none');
-});
-
-// Inline category creation
-const createCategoryForm = document.getElementById('createCategoryForm');
-const categoryFormAlert = document.getElementById('categoryFormAlert');
-const saveCategoryBtn = document.getElementById('saveCategoryBtn');
-
-createCategoryForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    categoryFormAlert.classList.add('d-none');
-    saveCategoryBtn.disabled = true;
-    saveCategoryBtn.textContent = 'Creating...';
-    const name = document.getElementById('categoryName').value.trim();
-    try {
-        const res = await fetch('/accounts/categories/create/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            },
-            body: JSON.stringify({ name })
-        });
-        const data = await res.json();
-        if (data.success) {
-            // Add new category to filter and item modal dropdowns
-            const option = document.createElement('option');
-            option.value = data.category.id;
-            option.textContent = data.category.name;
-            document.getElementById('categoryFilter').appendChild(option);
-            document.getElementById('itemCategory').appendChild(option.cloneNode(true));
-            categoryFormAlert.classList.remove('d-none', 'alert-danger');
-            categoryFormAlert.classList.add('alert-success');
-            categoryFormAlert.textContent = 'Category created!';
-            createCategoryForm.reset();
-            setTimeout(() => {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('createCategoryModal'));
-                modal.hide();
-                categoryFormAlert.classList.add('d-none');
-                saveCategoryBtn.disabled = false;
-                saveCategoryBtn.textContent = 'Create';
-            }, 1000);
-        } else {
-            categoryFormAlert.classList.remove('d-none', 'alert-success');
-            categoryFormAlert.classList.add('alert-danger');
-            categoryFormAlert.textContent = data.error || 'Error creating category.';
-            saveCategoryBtn.disabled = false;
-            saveCategoryBtn.textContent = 'Create';
-        }
-    } catch (err) {
-        categoryFormAlert.classList.remove('d-none', 'alert-success');
-        categoryFormAlert.classList.add('alert-danger');
-        categoryFormAlert.textContent = err.message || 'Error creating category.';
-        saveCategoryBtn.disabled = false;
-        saveCategoryBtn.textContent = 'Create';
-    }
 });
 </script>
 {% endblock %}

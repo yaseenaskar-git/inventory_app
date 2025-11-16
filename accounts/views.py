@@ -10,7 +10,7 @@ from .forms import RegisterForm, LoginForm, InventoryForm
 from .models import Inventory
 import json
 from .forms import ItemForm
-from .models import Item, Category, ActivityLog
+from .models import Item, Category
 from sorl.thumbnail import get_thumbnail
 
 from django.shortcuts import get_object_or_404
@@ -196,7 +196,7 @@ class ItemCreateView(LoginRequiredMixin, View):
                 item.inventory = inventory
                 item.save()
 
-                ActivityLog.objects.create(item=item, user=request.user, action='created', note='Item created')
+                # ActivityLog removed
 
             return JsonResponse({'success': True, 'item': {
                 'id': item.id,
@@ -225,10 +225,10 @@ class ItemUpdateView(LoginRequiredMixin, View):
                 if remove_image and item.image:
                     item.image.delete(save=False)
                     item.image = None
-                    ActivityLog.objects.create(item=item, user=request.user, action='image_removed', note='Image removed')
+                    # ActivityLog removed
 
                 item.save()
-                ActivityLog.objects.create(item=item, user=request.user, action='edited', note='Item updated')
+                # ActivityLog removed
 
             return JsonResponse({'success': True, 'item': {
                 'id': item.id,
@@ -248,7 +248,7 @@ class ItemDeleteView(LoginRequiredMixin, View):
     def post(self, request, inventory_id, item_id):
         inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
         item = get_object_or_404(Item, id=item_id, inventory=inventory)
-        ActivityLog.objects.create(item=item, user=request.user, action='deleted', note='Item deleted')
+        # ActivityLog removed
         item.delete()
         return JsonResponse({'success': True})
 
@@ -265,11 +265,11 @@ def item_quantity_update(request, inventory_id, item_id):
         if action == 'increase':
             item.quantity += amount
             item.save()
-            ActivityLog.objects.create(item=item, user=request.user, action='quantity_increased', note=f'+{amount}')
+            # ActivityLog removed
         elif action == 'decrease':
             item.quantity = max(0, item.quantity - amount)
             item.save()
-            ActivityLog.objects.create(item=item, user=request.user, action='quantity_decreased', note=f'-{amount}')
+            # ActivityLog removed
         else:
             return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
 
@@ -327,18 +327,16 @@ def bulk_action(request, inventory_id):
         amount = int(data.get('amount', 1))
         items = Item.objects.filter(id__in=item_ids, inventory=inventory)
         if action == 'delete':
-            for it in items:
-                ActivityLog.objects.create(item=it, user=request.user, action='deleted', note='Bulk delete')
             items.delete()
             return JsonResponse({'success': True})
         elif action in ['increase', 'decrease']:
             for it in items:
                 if action == 'increase':
                     it.quantity += amount
-                    ActivityLog.objects.create(item=it, user=request.user, action='quantity_increased', note=f'+{amount}')
+                    # ActivityLog removed
                 else:
                     it.quantity = max(0, it.quantity - amount)
-                    ActivityLog.objects.create(item=it, user=request.user, action='quantity_decreased', note=f'-{amount}')
+                    # ActivityLog removed
                 it.save()
             return JsonResponse({'success': True})
         else:

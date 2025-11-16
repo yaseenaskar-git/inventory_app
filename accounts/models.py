@@ -64,27 +64,4 @@ class Item(models.Model):
         return delta <= 7 and delta >= 0
 
 
-class ActivityLog(models.Model):
-    """Simple activity log for item actions."""
-    ACTION_CHOICES = [
-        ('created', 'Created'),
-        ('edited', 'Edited'),
-        ('quantity_increased', 'Quantity Increased'),
-        ('quantity_decreased', 'Quantity Decreased'),
-        ('deleted', 'Deleted'),
-        ('image_added', 'Image Added'),
-        ('image_removed', 'Image Removed'),
-        ('image_updated', 'Image Updated'),
-    ]
-
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='logs')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    action = models.CharField(max_length=32, choices=ACTION_CHOICES)
-    note = models.TextField(blank=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-timestamp']
-
-    def __str__(self):
-        return f"{self.get_action_display()} - {self.item}"
+## ActivityLog model and related logic removed
