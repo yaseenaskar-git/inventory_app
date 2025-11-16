@@ -203,11 +203,24 @@ class ItemListView(LoginRequiredMixin, View):
         items_qs = Item.objects.filter(inventory=inventory)
 
         # Sorting
+        from django.db.models import Case, When, Value
         sort = request.GET.get('sort')
         if sort == 'expiry_asc':
-            items_qs = items_qs.order_by('expiration_date')
+            # Sort soon to late, but items with no expiry date go to the end
+            items_qs = items_qs.annotate(
+                has_expiry=Case(
+                    When(expiration_date__isnull=True, then=Value(1)),
+                    default=Value(0)
+                )
+            ).order_by('has_expiry', 'expiration_date')
         elif sort == 'expiry_desc':
-            items_qs = items_qs.order_by('-expiration_date')
+            # Sort late to soon, but items with no expiry date go to the end
+            items_qs = items_qs.annotate(
+                has_expiry=Case(
+                    When(expiration_date__isnull=True, then=Value(1)),
+                    default=Value(0)
+                )
+            ).order_by('has_expiry', '-expiration_date')
         elif sort == 'quantity_asc':
             items_qs = items_qs.order_by('quantity')
         elif sort == 'quantity_desc':
