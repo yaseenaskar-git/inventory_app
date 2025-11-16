@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from .forms import RegisterForm, LoginForm, InventoryForm
 from .models import Inventory
 import json
@@ -82,6 +83,7 @@ def logout_view(request):
 
 
 @login_required(login_url='login')
+@never_cache
 def dashboard(request):
     inventories = Inventory.objects.filter(user=request.user)
     return render(request, 'accounts/dashboard.html', {
@@ -93,10 +95,15 @@ def dashboard(request):
 @login_required(login_url='login')
 @require_http_methods(["POST"])
 def delete_inventory(request, inventory_id):
-    """Delete an inventory"""
-    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
-    inventory.delete()
-    return JsonResponse({'success': True, 'message': 'Inventory deleted'})
+    """Delete an inventory and all its items"""
+    try:
+        inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+        # Delete all items first (cascade) then inventory
+        Item.objects.filter(inventory_id=inventory_id).delete()
+        Inventory.objects.filter(id=inventory_id).delete()
+        return JsonResponse({'success': True, 'message': 'Inventory deleted'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 @login_required(login_url='login')
@@ -211,10 +218,14 @@ class ItemListView(LoginRequiredMixin, View):
         page = request.GET.get('page')
         items = paginator.get_page(page)
 
-        return render(request, 'accounts/inventory_items.html', {
+        response = render(request, 'accounts/inventory_items.html', {
             'inventory': inventory,
             'items': items,
         })
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
 
 
 class ItemCreateView(LoginRequiredMixin, View):
@@ -280,11 +291,13 @@ class ItemDeleteView(LoginRequiredMixin, View):
     login_url = 'login'
 
     def post(self, request, inventory_id, item_id):
-        inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
-        item = get_object_or_404(Item, id=item_id, inventory=inventory)
-        # ActivityLog removed
-        item.delete()
-        return JsonResponse({'success': True})
+        try:
+            inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+            item = get_object_or_404(Item, id=item_id, inventory=inventory)
+            item.delete()
+            return JsonResponse({'success': True, 'message': 'Item deleted'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 @login_required(login_url='login')

@@ -236,12 +236,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const editAlert = document.getElementById('editInventoryFormAlert');
         
         try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfToken) {
+                throw new Error('CSRF token not found');
+            }
+            
             const response = await fetch(`/accounts/inventories/${inventoryId}/delete/`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-CSRFToken': csrfToken.value,
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.success) {
@@ -258,6 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
             editAlert.classList.remove('d-none', 'alert-success');
             editAlert.classList.add('alert-danger');
             editAlert.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            console.error('Delete error:', error);
         }
     });
 

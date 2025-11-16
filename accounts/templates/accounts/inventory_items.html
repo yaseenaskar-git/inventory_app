@@ -15,10 +15,10 @@
         </div>
         <div class="d-flex gap-2">
             <select id="sortSelect" class="form-select" style="max-width:220px;">
-                <option value="expiry_asc">Expiry: Soon → Late</option>
-                <option value="expiry_desc">Expiry: Late → Soon</option>
-                <option value="quantity_asc">Quantity: Low → High</option>
-                <option value="quantity_desc">Quantity: High → Low</option>
+                <option value="expiry_asc" {% if request.GET.sort == 'expiry_asc' or not request.GET.sort %}selected{% endif %}>Expiry: Soon → Late</option>
+                <option value="expiry_desc" {% if request.GET.sort == 'expiry_desc' %}selected{% endif %}>Expiry: Late → Soon</option>
+                <option value="quantity_asc" {% if request.GET.sort == 'quantity_asc' %}selected{% endif %}>Quantity: Low → High</option>
+                <option value="quantity_desc" {% if request.GET.sort == 'quantity_desc' %}selected{% endif %}>Quantity: High → Low</option>
             </select>
             <button id="createItemBtn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#itemModal">➕ Add Item</button>
         </div>
@@ -145,6 +145,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper: fetch wrapper with JSON
     async function fetchJSON(url, opts={}){
         const res = await fetch(url, opts);
+        if (!res.ok) {
+            throw new Error(`Server error: ${res.status} - ${res.statusText}`);
+        }
         return res.json();
     }
 
@@ -252,11 +255,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!confirm('Delete this item?')) return;
             const id = document.getElementById('itemId').value;
             try {
-                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/delete/`, {method:'POST', headers:{'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}});
-                if(res.success) location.reload(); else alert('Failed to delete');
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (!csrfToken) {
+                    throw new Error('CSRF token not found');
+                }
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/delete/`, {
+                    method:'POST', 
+                    headers:{'X-CSRFToken': csrfToken.value}
+                });
+                if(res.success) {
+                    location.reload();
+                } else {
+                    alert(`Failed to delete: ${res.error || 'Unknown error'}`);
+                }
             } catch (error) {
                 console.error('Delete error:', error);
-                alert('Error deleting item');
+                alert(`Error deleting item: ${error.message}`);
             }
         }
     });
