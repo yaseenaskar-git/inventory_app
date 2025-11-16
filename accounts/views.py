@@ -1,25 +1,17 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.cache import never_cache
-from .forms import RegisterForm, LoginForm, InventoryForm
-from .models import Inventory
-import json
-from .forms import ItemForm
-from .models import Item, Category
-from sorl.thumbnail import get_thumbnail
-
-from django.shortcuts import get_object_or_404
 from django.views import View
-from django.views.generic import ListView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import JsonResponse
+from django.views.decorators.cache import never_cache
+from .forms import RegisterForm, LoginForm, ItemForm
+from .models import Inventory, Item, Category
+import json
+from sorl.thumbnail import get_thumbnail
 from django.core.paginator import Paginator
 from django.db import transaction
 
@@ -262,7 +254,7 @@ class ItemCreateView(LoginRequiredMixin, View):
                 'quantity': item.quantity,
                 'category': item.category.name if item.category else None,
                 'image_url': item.image.url if item.image else None,
-                'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
+                'thumbnail_url': get_thumbnail(item.image, '300x300', quality=85).url if item.image else None,
             }})
 
         return JsonResponse({'success': False, 'errors': form.errors}, status=400)
@@ -294,7 +286,7 @@ class ItemUpdateView(LoginRequiredMixin, View):
                 'quantity': item.quantity,
                 'category': item.category.name if item.category else None,
                 'image_url': item.image.url if item.image else None,
-                'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
+                'thumbnail_url': get_thumbnail(item.image, '300x300', quality=85).url if item.image else None,
             }})
 
         return JsonResponse({'success': False, 'errors': form.errors}, status=400)
@@ -400,3 +392,191 @@ def bulk_action(request, inventory_id):
             return JsonResponse({'success': False, 'error': 'Unknown bulk action'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# ========================
+# User Settings Views
+# ========================
+
+@login_required(login_url='login')
+@never_cache
+def user_settings(request):
+    """Display user settings page with tabs for email, password, and account deletion"""
+    return render(request, 'accounts/settings.html', {
+        'user': request.user
+    })
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def change_email(request):
+    """API endpoint to change user email address"""
+    try:
+        user = request.user
+        data = json.loads(request.body)
+        
+        new_email = data.get('new_email', '').strip()
+        current_password = data.get('current_password', '').strip()
+        
+        # Validate current password
+        if not authenticate(username=user.username, password=current_password):
+            return JsonResponse({
+                'success': False,
+                'error': 'Current password is incorrect.'
+            }, status=401)
+        
+        # Validate new email format
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+        try:
+            validate_email(new_email)
+        except ValidationError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid email format.'
+            }, status=400)
+        
+        # Check if email already exists (case-insensitive)
+        if User.objects.filter(email__iexact=new_email).exclude(id=user.id).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'This email is already in use by another account.'
+            }, status=400)
+        
+        # Update email
+        user.email = new_email
+        user.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Email successfully changed to {new_email}'
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request format.'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def change_password(request):
+    """API endpoint to change user password with validation"""
+    try:
+        user = request.user
+        data = json.loads(request.body)
+        
+        current_password = data.get('current_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+        
+        # Validate current password
+        if not authenticate(username=user.username, password=current_password):
+            return JsonResponse({
+                'success': False,
+                'error': 'Current password is incorrect.'
+            }, status=401)
+        
+        # Validate new password strength using custom validator
+        from .validators import StrongPasswordValidator
+        validator = StrongPasswordValidator()
+        try:
+            validator.validate(new_password, user)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Password validation failed: {str(e)}'
+            }, status=400)
+        
+        # Ensure new password is different from current
+        if authenticate(username=user.username, password=new_password):
+            return JsonResponse({
+                'success': False,
+                'error': 'New password must be different from your current password.'
+            }, status=400)
+        
+        # Update password
+        user.set_password(new_password)
+        user.save()
+        
+        # Re-authenticate user to keep them logged in
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Password successfully changed. You remain logged in.'
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request format.'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def delete_account(request):
+    """API endpoint to permanently delete user account and all related data"""
+    try:
+        user = request.user
+        data = json.loads(request.body)
+        
+        username_confirmation = data.get('username_confirmation', '').strip()
+        current_password = data.get('current_password', '').strip()
+        
+        # Validate current password
+        if not authenticate(username=user.username, password=current_password):
+            return JsonResponse({
+                'success': False,
+                'error': 'Current password is incorrect.'
+            }, status=401)
+        
+        # Require username confirmation
+        if username_confirmation != user.username:
+            return JsonResponse({
+                'success': False,
+                'error': f'Username confirmation does not match. Expected: {user.username}'
+            }, status=400)
+        
+        # Delete all user data in a transaction
+        with transaction.atomic():
+            # Delete all inventories (items will be cascade deleted)
+            Inventory.objects.filter(user=user).delete()
+            
+            # Delete all categories
+            Category.objects.filter(user=user).delete()
+            
+            # Delete the user account
+            user.delete()
+        
+        # Log out the user (session will be invalid)
+        logout(request)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Account permanently deleted. Redirecting to login...'
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request format.'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+

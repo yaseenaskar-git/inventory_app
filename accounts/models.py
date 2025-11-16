@@ -62,6 +62,3 @@ class Item(models.Model):
         today = timezone.localdate()
         delta = (self.expiration_date - today).days
         return delta <= 7 and delta >= 0
-
-
-## ActivityLog model and related logic removed

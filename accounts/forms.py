@@ -1,12 +1,12 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
-from .models import Inventory
 from .models import Item
+from .validators import StrongPasswordValidator
 
 
-class RegisterForm(UserCreationForm):
+class RegisterForm(forms.Form):
+    """Registration form for new users"""
     username = forms.CharField(
         max_length=150,
         required=True,
@@ -22,21 +22,26 @@ class RegisterForm(UserCreationForm):
             'placeholder': 'Enter your email'
         })
     )
-
-    class Meta:
-        model = User
-        fields = ('username', 'email', 'password1', 'password2')
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['password1'].widget.attrs.update({
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter password'
-        })
-        self.fields['password2'].widget.attrs.update({
+        }),
+        help_text=(
+            'Password must contain: '
+            'at least 8 characters, '
+            'an uppercase letter (A-Z), '
+            'a lowercase letter (a-z), '
+            'a digit (0-9), '
+            'and a special character (!@#$%^&*).'
+        )
+    )
+    password_confirm = forms.CharField(
+        widget=forms.PasswordInput(attrs={
             'class': 'form-control',
             'placeholder': 'Confirm password'
         })
+    )
 
     def clean_username(self):
         username = self.cleaned_data.get('username')
@@ -50,12 +55,31 @@ class RegisterForm(UserCreationForm):
             raise ValidationError('This email is already registered.')
         return email
 
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.username = self.cleaned_data['username']
-        user.email = self.cleaned_data['email']
-        if commit:
-            user.save()
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirm = cleaned_data.get('password_confirm')
+        
+        if password and password_confirm:
+            if password != password_confirm:
+                raise ValidationError('Passwords do not match.')
+        
+        # Validate password strength with custom validator
+        if password:
+            validator = StrongPasswordValidator()
+            try:
+                validator.validate(password)
+            except ValidationError as e:
+                self.add_error('password', e)
+        
+        return cleaned_data
+
+    def save(self):
+        user = User.objects.create_user(
+            username=self.cleaned_data['username'],
+            email=self.cleaned_data['email'],
+            password=self.cleaned_data['password']
+        )
         return user
 
 
@@ -72,57 +96,6 @@ class LoginForm(forms.Form):
             'placeholder': 'Enter your password'
         })
     )
-
-
-class InventoryForm(forms.ModelForm):
-    emoji = forms.ChoiceField(
-        choices=[
-            ('📦', '📦 Box'),
-            ('🏠', '🏠 Home'),
-            ('🎁', '🎁 Gift'),
-            ('📚', '📚 Books'),
-            ('🍕', '🍕 Food'),
-            ('🛒', '🛒 Shopping'),
-            ('💼', '💼 Work'),
-            ('🎮', '🎮 Gaming'),
-            ('📱', '📱 Electronics'),
-            ('👕', '👕 Clothes'),
-            ('🎨', '🎨 Art'),
-            ('🔧', '🔧 Tools'),
-            ('🌱', '🌱 Garden'),
-            ('⚽', '⚽ Sports'),
-            ('🎵', '🎵 Music'),
-            ('📸', '📸 Photos'),
-        ],
-        widget=forms.RadioSelect(attrs={
-            'class': 'emoji-selector'
-        })
-    )
-
-    class Meta:
-        model = Inventory
-        fields = ('name', 'emoji')
-        widgets = {
-            'name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter inventory name',
-                'maxlength': '255'
-            })
-        }
-
-    def __init__(self, user=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.user = user
-
-    def clean_name(self):
-        name = self.cleaned_data.get('name')
-        if not name:
-            raise ValidationError('Inventory name is required.')
-        if len(name) > 255:
-            raise ValidationError('Inventory name must be less than 255 characters.')
-        if self.user and Inventory.objects.filter(user=self.user, name=name).exists():
-            raise ValidationError('You already have an inventory with this name.')
-        return name
 
 
 
