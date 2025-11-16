@@ -254,7 +254,7 @@ class ItemCreateView(LoginRequiredMixin, View):
                 'quantity': item.quantity,
                 'category': item.category.name if item.category else None,
                 'image_url': item.image.url if item.image else None,
-                'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
+                'thumbnail_url': get_thumbnail(item.image, '300x300', quality=85).url if item.image else None,
             }})
 
         return JsonResponse({'success': False, 'errors': form.errors}, status=400)
@@ -286,7 +286,7 @@ class ItemUpdateView(LoginRequiredMixin, View):
                 'quantity': item.quantity,
                 'category': item.category.name if item.category else None,
                 'image_url': item.image.url if item.image else None,
-                'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
+                'thumbnail_url': get_thumbnail(item.image, '300x300', quality=85).url if item.image else None,
             }})
 
         return JsonResponse({'success': False, 'errors': form.errors}, status=400)
