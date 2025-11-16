@@ -1,0 +1,328 @@
+{% extends 'accounts/base.html' %}
+{% load thumbnail %}
+
+{% block title %}{{ inventory.name }} — Items{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">← Back to Dashboard</a>
+            <div>
+                <h2 style="color:#667eea;">{{ inventory.emoji }} {{ inventory.name }}</h2>
+                <p class="text-muted">Manage items inside this inventory.</p>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <select id="sortSelect" class="form-select" style="max-width:220px;">
+                <option value="expiry_asc" {% if request.GET.sort == 'expiry_asc' or not request.GET.sort %}selected{% endif %}>Expiry: Soon → Late</option>
+                <option value="expiry_desc" {% if request.GET.sort == 'expiry_desc' %}selected{% endif %}>Expiry: Late → Soon</option>
+                <option value="quantity_asc" {% if request.GET.sort == 'quantity_asc' %}selected{% endif %}>Quantity: Low → High</option>
+                <option value="quantity_desc" {% if request.GET.sort == 'quantity_desc' %}selected{% endif %}>Quantity: High → Low</option>
+            </select>
+            <button id="createItemBtn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#itemModal">➕ Add Item</button>
+        </div>
+    </div>
+
+    <!-- Select multiple and bulk actions removed -->
+
+    <div id="itemsGrid" class="inventory-grid">
+        {% for item in items %}
+            <div class="inventory-card" data-item-id="{{ item.id }}">
+                <button type="button" class="btn btn-sm btn-link edit-item-btn" data-item-id="{{ item.id }}" style="position:absolute; right:8px; top:8px; z-index:10; padding:0; border:none;">✏️</button>
+                <div class="inventory-emoji">
+                    {% if item.image %}
+                        {% thumbnail item.image "300x" quality=85 as im %}
+                            <img src="{{ im.url }}" alt="{{ item.name }}" style="max-width:120px; max-height:120px; border-radius:8px;" />
+                        {% endthumbnail %}
+                    {% else %}
+                        {{ item.inventory.emoji }}
+                    {% endif %}
+                </div>
+                <div class="inventory-name">{{ item.name }}</div>
+                <div class="inventory-footer mt-3">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary qty-decrease" data-item-id="{{ item.id }}">-</button>
+                        <div class="px-2 qty-number" data-item-id="{{ item.id }}">{{ item.quantity }}</div>
+                        <button class="btn btn-sm btn-outline-secondary qty-increase" data-item-id="{{ item.id }}">+</button>
+                    </div>
+                    <div class="mt-2">
+                        {% if item.is_expiring_soon %}
+                            <span class="badge bg-warning text-dark">Expiring soon</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-3">
+        {% if items.has_other_pages %}
+            <nav>
+                <ul class="pagination">
+                    {% if items.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ items.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ items.number }}</span></li>
+                    {% if items.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ items.next_page_number }}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Item Modal (used for create & edit) -->
+<div class="modal fade" id="itemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom: 2px solid #667eea;">
+                <h5 id="itemModalTitle" class="modal-title" style="color:#667eea; font-weight:bold;">Add Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="itemForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" id="itemId" name="item_id" />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Item name</label>
+                                <input id="itemName" name="name" class="form-control" required />
+                            </div>
+                            <div class="mb-3 d-flex gap-2">
+                                <div style="flex:1">
+                                    <label class="form-label">Quantity</label>
+                                    <input id="itemQuantity" name="quantity" type="number" class="form-control" min="0" value="0" required />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Brand</label>
+                                <input id="itemBrand" name="brand" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea id="itemDescription" name="description" class="form-control" rows="4"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Expiration date</label>
+                                <input id="itemExpiration" name="expiration_date" type="date" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Image</label>
+                                <input id="itemImage" name="image" type="file" accept="image/*" class="form-control" />
+                                <div id="imagePreview" class="mt-2"></div>
+                                <div class="form-check mt-2 d-none" id="removeImageWrap">
+                                    <input class="form-check-input" type="checkbox" id="removeImage" name="remove_image" />
+                                    <label class="form-check-label" for="removeImage">Remove existing image</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="itemFormAlert" class="alert d-none" role="alert"></div>
+
+                    <!-- Activity log removed -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger d-none" id="deleteItemBtn">Delete Item</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="saveItemBtn" class="btn btn-success">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inventoryId = "{{ inventory.id }}";
+
+    // Helper: fetch wrapper with JSON
+    async function fetchJSON(url, opts={}){
+        const res = await fetch(url, opts);
+        if (!res.ok) {
+            throw new Error(`Server error: ${res.status} - ${res.statusText}`);
+        }
+        return res.json();
+    }
+
+    // Image preview handler using event delegation
+    document.addEventListener('change', (e) => {
+        if (e.target.id === 'itemImage') {
+            const file = e.target.files[0];
+            const imagePreview = document.getElementById('imagePreview');
+            if(!file) { imagePreview.innerHTML = ''; return; }
+            const url = URL.createObjectURL(file);
+            imagePreview.innerHTML = `<img src="${url}" style="max-width:140px; max-height:140px; border-radius:8px;"/> <div><button id="removePreview" class="btn btn-sm btn-link">Remove</button></div>`;
+            document.getElementById('removeImageWrap').classList.add('d-none');
+            document.getElementById('removePreview')?.addEventListener('click', ()=>{ e.target.value=''; imagePreview.innerHTML=''; });
+        }
+    });
+
+    // Create modal handler - delegated click on button with id
+    document.addEventListener('click', (e) => {
+        if (e.target.id === 'createItemBtn' || e.target.closest('#createItemBtn')) {
+            const imagePreview = document.getElementById('imagePreview');
+            document.getElementById('itemModalTitle').textContent = 'Add Item';
+            document.getElementById('itemForm').reset();
+            document.getElementById('itemId').value = '';
+            document.getElementById('removeImageWrap').classList.add('d-none');
+            document.getElementById('deleteItemBtn').classList.add('d-none');
+            document.getElementById('itemFormAlert').classList.add('d-none');
+            imagePreview.innerHTML = '';
+        }
+    });
+
+    // Edit item buttons - delegated to parent container
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.edit-item-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const btn = e.target.closest('.edit-item-btn');
+            const id = btn.dataset.itemId;
+            const imagePreview = document.getElementById('imagePreview');
+            
+            try {
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/detail/`);
+                if(!res.success){ alert('Could not load item'); return; }
+                const item = res.item;
+                document.getElementById('itemModalTitle').textContent = 'Edit Item';
+                document.getElementById('itemId').value = item.id;
+                document.getElementById('itemName').value = item.name;
+                document.getElementById('itemQuantity').value = item.quantity;
+                document.getElementById('itemBrand').value = item.brand;
+                document.getElementById('itemDescription').value = item.description;
+                document.getElementById('itemExpiration').value = item.expiration_date || '';
+                if(item.image_url){
+                    imagePreview.innerHTML = `<img src="${item.thumbnail_url || item.image_url}" style="max-width:140px; max-height:140px; border-radius:8px;"/>`;
+                    document.getElementById('removeImageWrap').classList.remove('d-none');
+                } else {
+                    imagePreview.innerHTML = '';
+                    document.getElementById('removeImageWrap').classList.add('d-none');
+                }
+                document.getElementById('deleteItemBtn').classList.remove('d-none');
+                const modalEl = document.getElementById('itemModal');
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            } catch (error) {
+                console.error('Error loading item:', error);
+                alert('Error loading item details');
+            }
+        }
+    });
+
+    // Form submission - delegated
+    document.addEventListener('submit', async (e) => {
+        if (e.target.id === 'itemForm') {
+            e.preventDefault();
+            const id = document.getElementById('itemId').value;
+            const url = id ? `/accounts/inventories/${inventoryId}/items/${id}/update/` : `/accounts/inventories/${inventoryId}/items/create/`;
+            const form = document.getElementById('itemForm');
+            const fd = new FormData(form);
+            const alert = document.getElementById('itemFormAlert');
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                    body: fd
+                });
+                const data = await res.json();
+                if(data.success){
+                    location.reload();
+                } else {
+                    alert.classList.remove('d-none');
+                    alert.classList.add('alert-danger');
+                    alert.textContent = JSON.stringify(data.errors || data.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Form submission error:', error);
+                alert.classList.remove('d-none');
+                alert.classList.add('alert-danger');
+                alert.textContent = 'Error submitting form: ' + error.message;
+            }
+        }
+    });
+
+    // Delete item button - delegated
+    document.addEventListener('click', async (e) => {
+        if (e.target.id === 'deleteItemBtn') {
+            if(!confirm('Delete this item?')) return;
+            const id = document.getElementById('itemId').value;
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (!csrfToken) {
+                    throw new Error('CSRF token not found');
+                }
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/delete/`, {
+                    method:'POST', 
+                    headers:{'X-CSRFToken': csrfToken.value}
+                });
+                if(res.success) {
+                    location.reload();
+                } else {
+                    alert(`Failed to delete: ${res.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert(`Error deleting item: ${error.message}`);
+            }
+        }
+    });
+
+    // Quantity increase buttons - delegated
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.qty-increase')) {
+            const btn = e.target.closest('.qty-increase');
+            const id = btn.dataset.itemId;
+            try {
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/quantity/`, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, 
+                    body: JSON.stringify({action:'increase', amount:1})
+                });
+                if(res.success){ 
+                    document.querySelector(`.qty-number[data-item-id='${id}']`).textContent = res.quantity; 
+                }
+            } catch (error) {
+                console.error('Quantity increase error:', error);
+            }
+        }
+    });
+
+    // Quantity decrease buttons - delegated
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.qty-decrease')) {
+            const btn = e.target.closest('.qty-decrease');
+            const id = btn.dataset.itemId;
+            try {
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/quantity/`, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, 
+                    body: JSON.stringify({action:'decrease', amount:1})
+                });
+                if(res.success){ 
+                    document.querySelector(`.qty-number[data-item-id='${id}']`).textContent = res.quantity; 
+                }
+            } catch (error) {
+                console.error('Quantity decrease error:', error);
+            }
+        }
+    });
+
+    // Sort select change handler - delegated
+    document.addEventListener('change', (e) => {
+        if (e.target.id === 'sortSelect') {
+            const params = new URLSearchParams(window.location.search);
+            params.set('sort', e.target.value);
+            window.location.search = params.toString();
+        }
+    });
+});
+</script>
+{% endblock %}
