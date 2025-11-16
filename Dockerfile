@@ -7,11 +7,12 @@ WORKDIR /app
 # Install only essential system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install requirements
+# Copy and install requirements (binary only to avoid building from source)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
 
 # Copy application
 COPY . .
