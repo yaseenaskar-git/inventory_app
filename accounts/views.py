@@ -1,25 +1,17 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.cache import never_cache
-from .forms import RegisterForm, LoginForm, InventoryForm, ChangeEmailForm, ChangePasswordForm, DeleteAccountForm
-from .models import Inventory
-import json
-from .forms import ItemForm
-from .models import Item, Category
-from sorl.thumbnail import get_thumbnail
-
-from django.shortcuts import get_object_or_404
 from django.views import View
-from django.views.generic import ListView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import JsonResponse
+from django.views.decorators.cache import never_cache
+from .forms import RegisterForm, LoginForm, ItemForm
+from .models import Inventory, Item, Category
+import json
+from sorl.thumbnail import get_thumbnail
 from django.core.paginator import Paginator
 from django.db import transaction
 
