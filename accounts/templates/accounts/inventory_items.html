@@ -29,7 +29,7 @@
     <div id="itemsGrid" class="inventory-grid">
         {% for item in items %}
             <div class="inventory-card" data-item-id="{{ item.id }}">
-                <button class="btn btn-sm btn-link edit-item-btn" data-item-id="{{ item.id }}" style="position:absolute; right:8px; top:8px;">✏️</button>
+                <button class="btn btn-sm btn-link edit-item-btn" data-item-id="{{ item.id }}" style="position:absolute; right:8px; top:8px; z-index:10;">✏️</button>
                 <div class="inventory-emoji">
                     {% if item.image %}
                         {% thumbnail item.image "300x" quality=85 as im %}
