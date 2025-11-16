@@ -4,53 +4,257 @@
 
 {% block content %}
 <div class="dashboard-container">
+    <!-- Header -->
     <div class="row mb-4">
         <div class="col-12 col-md-6 mb-3 mb-md-0">
             <h1 style="color: #667eea; font-weight: bold; font-size: clamp(20px, 5vw, 32px); margin: 0;">
                 Welcome, {{ user.username }}! 👋
             </h1>
         </div>
-        <div class="col-12 col-md-6 d-flex justify-content-md-end">
+        <div class="col-12 col-md-6 d-flex gap-2 flex-wrap justify-content-md-end">
+            <button class="btn btn-success" style="width: 100%; max-width: 180px;" data-bs-toggle="modal" data-bs-target="#createInventoryModal">
+                ➕ Create Inventory
+            </button>
             <a href="{% url 'logout' %}" class="btn btn-danger" style="width: 100%; max-width: 150px;">Logout</a>
         </div>
     </div>
-    
-    <div class="alert alert-info" style="margin-bottom: 30px;">
-        <strong>Dashboard Coming Soon!</strong> This is your inventory management dashboard. More features will be added soon.
-    </div>
 
-    <div class="row">
-        <div class="col-12 col-md-6 mb-4">
-            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 25px; height: 100%; background: #f9f9f9; transition: box-shadow 0.3s ease;">
-                <h5 style="color: #667eea; font-size: clamp(16px, 3vw, 18px); font-weight: bold; margin-bottom: 15px;">📦 Inventories</h5>
-                <p style="color: #666; margin-bottom: 20px; font-size: clamp(14px, 2vw, 16px);">Manage your inventories and items.</p>
-                <button class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">Coming Soon</button>
+    <!-- Inventories Section -->
+    <div class="mb-4">
+        <h2 style="color: #667eea; font-size: clamp(18px, 4vw, 24px); font-weight: bold; margin-bottom: 20px;">Your Inventories</h2>
+        
+        {% if inventories %}
+            <!-- Inventory Grid -->
+            <div class="inventory-grid">
+                {% for inventory in inventories %}
+                    <div class="inventory-card">
+                        <div class="inventory-emoji">{{ inventory.emoji }}</div>
+                        <div class="inventory-name">{{ inventory.name }}</div>
+                        <div class="inventory-footer">
+                            <a href="#" class="btn btn-sm btn-primary">Open</a>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
-        </div>
-        <div class="col-12 col-md-6 mb-4">
-            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 25px; height: 100%; background: #f9f9f9; transition: box-shadow 0.3s ease;">
-                <h5 style="color: #667eea; font-size: clamp(16px, 3vw, 18px); font-weight: bold; margin-bottom: 15px;">📊 Analytics</h5>
-                <p style="color: #666; margin-bottom: 20px; font-size: clamp(14px, 2vw, 16px);">View reports and analytics.</p>
-                <button class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">Coming Soon</button>
+        {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div style="font-size: 64px; margin-bottom: 20px;">📭</div>
+                <h3 style="color: #667eea; margin-bottom: 10px;">No Inventories Yet</h3>
+                <p style="color: #666; margin-bottom: 20px; font-size: 16px;">Create your first inventory to get started!</p>
+                <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#createInventoryModal">
+                    ➕ Create Your First Inventory
+                </button>
             </div>
-        </div>
+        {% endif %}
     </div>
+</div>
 
-    <div class="row mt-4">
-        <div class="col-12 col-md-6 mb-4">
-            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 25px; height: 100%; background: #f9f9f9; transition: box-shadow 0.3s ease;">
-                <h5 style="color: #667eea; font-size: clamp(16px, 3vw, 18px); font-weight: bold; margin-bottom: 15px;">⚙️ Settings</h5>
-                <p style="color: #666; margin-bottom: 20px; font-size: clamp(14px, 2vw, 16px);">Manage your account preferences.</p>
-                <button class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">Coming Soon</button>
+<!-- Create Inventory Modal -->
+<div class="modal fade" id="createInventoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom: 2px solid #667eea;">
+                <h5 class="modal-title" style="color: #667eea; font-weight: bold;">Create New Inventory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-        <div class="col-12 col-md-6 mb-4">
-            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 25px; height: 100%; background: #f9f9f9; transition: box-shadow 0.3s ease;">
-                <h5 style="color: #667eea; font-size: clamp(16px, 3vw, 18px); font-weight: bold; margin-bottom: 15px;">📝 Activity</h5>
-                <p style="color: #666; margin-bottom: 20px; font-size: clamp(14px, 2vw, 16px);">View your recent activity.</p>
-                <button class="btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">Coming Soon</button>
-            </div>
+            <form id="createInventoryForm">
+                {% csrf_token %}
+                <div class="modal-body" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Inventory Name Input -->
+                    <div class="mb-3">
+                        <label for="inventoryName" class="form-label" style="color: #667eea; font-weight: bold;">Inventory Name</label>
+                        <input type="text" class="form-control" id="inventoryName" name="name" placeholder="e.g., Office Supplies" required maxlength="255" style="border: 1px solid #ddd; border-radius: 6px;">
+                        <small class="form-text text-muted">Choose a unique name for your inventory.</small>
+                    </div>
+
+                    <!-- Emoji Selector -->
+                    <div class="mb-3">
+                        <label class="form-label" style="color: #667eea; font-weight: bold;">Select Emoji</label>
+                        <div class="emoji-selector">
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="📦" id="emoji_box" checked>
+                                <label class="form-check-label emoji-label" for="emoji_box">
+                                    <span class="emoji-icon">📦</span>
+                                    <span class="emoji-name">Box</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🏠" id="emoji_house">
+                                <label class="form-check-label emoji-label" for="emoji_house">
+                                    <span class="emoji-icon">🏠</span>
+                                    <span class="emoji-name">House</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🎁" id="emoji_gift">
+                                <label class="form-check-label emoji-label" for="emoji_gift">
+                                    <span class="emoji-icon">🎁</span>
+                                    <span class="emoji-name">Gift</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="📚" id="emoji_books">
+                                <label class="form-check-label emoji-label" for="emoji_books">
+                                    <span class="emoji-icon">📚</span>
+                                    <span class="emoji-name">Books</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🍕" id="emoji_pizza">
+                                <label class="form-check-label emoji-label" for="emoji_pizza">
+                                    <span class="emoji-icon">🍕</span>
+                                    <span class="emoji-name">Pizza</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🛒" id="emoji_cart">
+                                <label class="form-check-label emoji-label" for="emoji_cart">
+                                    <span class="emoji-icon">🛒</span>
+                                    <span class="emoji-name">Cart</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="💼" id="emoji_briefcase">
+                                <label class="form-check-label emoji-label" for="emoji_briefcase">
+                                    <span class="emoji-icon">💼</span>
+                                    <span class="emoji-name">Briefcase</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🎮" id="emoji_gaming">
+                                <label class="form-check-label emoji-label" for="emoji_gaming">
+                                    <span class="emoji-icon">🎮</span>
+                                    <span class="emoji-name">Gaming</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="📱" id="emoji_phone">
+                                <label class="form-check-label emoji-label" for="emoji_phone">
+                                    <span class="emoji-icon">📱</span>
+                                    <span class="emoji-name">Phone</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="👕" id="emoji_shirt">
+                                <label class="form-check-label emoji-label" for="emoji_shirt">
+                                    <span class="emoji-icon">👕</span>
+                                    <span class="emoji-name">Shirt</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🎨" id="emoji_art">
+                                <label class="form-check-label emoji-label" for="emoji_art">
+                                    <span class="emoji-icon">🎨</span>
+                                    <span class="emoji-name">Art</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🔧" id="emoji_tools">
+                                <label class="form-check-label emoji-label" for="emoji_tools">
+                                    <span class="emoji-icon">🔧</span>
+                                    <span class="emoji-name">Tools</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🌱" id="emoji_plant">
+                                <label class="form-check-label emoji-label" for="emoji_plant">
+                                    <span class="emoji-icon">🌱</span>
+                                    <span class="emoji-name">Plant</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="⚽" id="emoji_sports">
+                                <label class="form-check-label emoji-label" for="emoji_sports">
+                                    <span class="emoji-icon">⚽</span>
+                                    <span class="emoji-name">Sports</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="🎵" id="emoji_music">
+                                <label class="form-check-label emoji-label" for="emoji_music">
+                                    <span class="emoji-icon">🎵</span>
+                                    <span class="emoji-name">Music</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input emoji-radio" type="radio" name="emoji" value="📸" id="emoji_photo">
+                                <label class="form-check-label emoji-label" for="emoji_photo">
+                                    <span class="emoji-icon">📸</span>
+                                    <span class="emoji-name">Photo</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alert for errors -->
+                    <div id="formAlert" class="alert d-none" role="alert"></div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #eee;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="submitBtn">Create Inventory</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('createInventoryForm');
+    const formAlert = document.getElementById('formAlert');
+    const submitBtn = document.getElementById('submitBtn');
+    const modal = new bootstrap.Modal(document.getElementById('createInventoryModal'));
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        formAlert.classList.add('d-none');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+
+        try {
+            const name = document.getElementById('inventoryName').value.trim();
+            const emoji = document.querySelector('input[name="emoji"]:checked').value;
+
+            const response = await fetch('{% url "create_inventory" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: JSON.stringify({ name, emoji })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Show success message
+                formAlert.classList.remove('d-none', 'alert-danger');
+                formAlert.classList.add('alert-success');
+                formAlert.innerHTML = `<strong>✓ Success!</strong> ${data.message}`;
+                
+                // Reset form
+                form.reset();
+                
+                // Reload page after 1.5 seconds
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                formAlert.classList.remove('d-none', 'alert-success');
+                formAlert.classList.add('alert-danger');
+                formAlert.innerHTML = `<strong>✗ Error:</strong> ${data.error}`;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Create Inventory';
+            }
+        } catch (error) {
+            formAlert.classList.remove('d-none', 'alert-success');
+            formAlert.classList.add('alert-danger');
+            formAlert.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Create Inventory';
+        }
+    });
+});
+</script>
 {% endblock %}

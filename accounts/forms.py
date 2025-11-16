@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
+from .models import Inventory
 
 
 class RegisterForm(UserCreationForm):
@@ -70,3 +71,55 @@ class LoginForm(forms.Form):
             'placeholder': 'Enter your password'
         })
     )
+
+
+class InventoryForm(forms.ModelForm):
+    emoji = forms.ChoiceField(
+        choices=[
+            ('📦', '📦 Box'),
+            ('🏠', '🏠 Home'),
+            ('🎁', '🎁 Gift'),
+            ('📚', '📚 Books'),
+            ('🍕', '🍕 Food'),
+            ('🛒', '🛒 Shopping'),
+            ('💼', '💼 Work'),
+            ('🎮', '🎮 Gaming'),
+            ('📱', '📱 Electronics'),
+            ('👕', '👕 Clothes'),
+            ('🎨', '🎨 Art'),
+            ('🔧', '🔧 Tools'),
+            ('🌱', '🌱 Garden'),
+            ('⚽', '⚽ Sports'),
+            ('🎵', '🎵 Music'),
+            ('📸', '📸 Photos'),
+        ],
+        widget=forms.RadioSelect(attrs={
+            'class': 'emoji-selector'
+        })
+    )
+
+    class Meta:
+        model = Inventory
+        fields = ('name', 'emoji')
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter inventory name',
+                'maxlength': '255'
+            })
+        }
+
+    def __init__(self, user=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if not name:
+            raise ValidationError('Inventory name is required.')
+        if len(name) > 255:
+            raise ValidationError('Inventory name must be less than 255 characters.')
+        if self.user and Inventory.objects.filter(user=self.user, name=name).exists():
+            raise ValidationError('You already have an inventory with this name.')
+        return name
+
