@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from .models import Inventory
+from .models import Item, Category
 
 
 class RegisterForm(UserCreationForm):
@@ -122,4 +123,41 @@ class InventoryForm(forms.ModelForm):
         if self.user and Inventory.objects.filter(user=self.user, name=name).exists():
             raise ValidationError('You already have an inventory with this name.')
         return name
+
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ('name',)
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Category name'
+            })
+        }
+
+
+class ItemForm(forms.ModelForm):
+    remove_image = forms.BooleanField(required=False, initial=False)
+
+    class Meta:
+        model = Item
+        fields = ('name', 'quantity', 'category', 'brand', 'description', 'expiration_date', 'image')
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Item name'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'brand': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Brand (optional)'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Description (optional)'}),
+            'expiration_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean_quantity(self):
+        q = self.cleaned_data.get('quantity')
+        if q is None:
+            return 0
+        if q < 0:
+            raise ValidationError('Quantity cannot be negative.')
+        return q
 

@@ -9,6 +9,18 @@ from django.views.decorators.csrf import csrf_exempt
 from .forms import RegisterForm, LoginForm, InventoryForm
 from .models import Inventory
 import json
+from .forms import ItemForm, CategoryForm
+from .models import Item, Category, ActivityLog
+from sorl.thumbnail import get_thumbnail
+
+from django.shortcuts import get_object_or_404
+from django.views import View
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.core.paginator import Paginator
+from django.db import transaction
 
 
 @require_http_methods(["GET", "POST"])
@@ -134,3 +146,219 @@ def create_inventory(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+# --------------------
+# Items and Categories
+# --------------------
+
+
+class ItemListView(LoginRequiredMixin, View):
+    """Display items for a given inventory and handle filtering/searching via query params."""
+    login_url = 'login'
+
+    def get(self, request, inventory_id):
+        inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+        items_qs = Item.objects.filter(inventory=inventory)
+
+        # Filtering by category
+        category_id = request.GET.get('category')
+        if category_id and category_id != 'all':
+            items_qs = items_qs.filter(category_id=category_id)
+
+        # Search
+        q = request.GET.get('q')
+        if q:
+            items_qs = items_qs.filter(name__icontains=q)
+
+        # Sorting
+        sort = request.GET.get('sort')
+        if sort == 'name_asc':
+            items_qs = items_qs.order_by('name')
+        elif sort == 'name_desc':
+            items_qs = items_qs.order_by('-name')
+        elif sort == 'qty_asc':
+            items_qs = items_qs.order_by('quantity')
+        elif sort == 'qty_desc':
+            items_qs = items_qs.order_by('-quantity')
+        elif sort == 'exp_asc':
+            items_qs = items_qs.order_by('expiration_date')
+        elif sort == 'exp_desc':
+            items_qs = items_qs.order_by('-expiration_date')
+
+        categories = Category.objects.filter(user=request.user)
+
+        # Pagination (optional)
+        paginator = Paginator(items_qs, 60)
+        page = request.GET.get('page')
+        items = paginator.get_page(page)
+
+        return render(request, 'accounts/inventory_items.html', {
+            'inventory': inventory,
+            'items': items,
+            'categories': categories,
+        })
+
+
+class ItemCreateView(LoginRequiredMixin, View):
+    login_url = 'login'
+
+    def post(self, request, inventory_id):
+        inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+
+        form = ItemForm(request.POST, request.FILES)
+        if form.is_valid():
+            with transaction.atomic():
+                item = form.save(commit=False)
+                item.inventory = inventory
+                item.save()
+
+                ActivityLog.objects.create(item=item, user=request.user, action='created', note='Item created')
+
+            return JsonResponse({'success': True, 'item': {
+                'id': item.id,
+                'name': item.name,
+                'quantity': item.quantity,
+                'category': item.category.name if item.category else None,
+                'image_url': item.image.url if item.image else None,
+                'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
+            }})
+
+        return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+
+
+class ItemUpdateView(LoginRequiredMixin, View):
+    login_url = 'login'
+
+    def post(self, request, inventory_id, item_id):
+        inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+        item = get_object_or_404(Item, id=item_id, inventory=inventory)
+
+        form = ItemForm(request.POST, request.FILES, instance=item)
+        if form.is_valid():
+            remove_image = form.cleaned_data.get('remove_image')
+            with transaction.atomic():
+                item = form.save(commit=False)
+                if remove_image and item.image:
+                    item.image.delete(save=False)
+                    item.image = None
+                    ActivityLog.objects.create(item=item, user=request.user, action='image_removed', note='Image removed')
+
+                item.save()
+                ActivityLog.objects.create(item=item, user=request.user, action='edited', note='Item updated')
+
+            return JsonResponse({'success': True, 'item': {
+                'id': item.id,
+                'name': item.name,
+                'quantity': item.quantity,
+                'category': item.category.name if item.category else None,
+                'image_url': item.image.url if item.image else None,
+                'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
+            }})
+
+        return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+
+
+class ItemDeleteView(LoginRequiredMixin, View):
+    login_url = 'login'
+
+    def post(self, request, inventory_id, item_id):
+        inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+        item = get_object_or_404(Item, id=item_id, inventory=inventory)
+        ActivityLog.objects.create(item=item, user=request.user, action='deleted', note='Item deleted')
+        item.delete()
+        return JsonResponse({'success': True})
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def item_quantity_update(request, inventory_id, item_id):
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    item = get_object_or_404(Item, id=item_id, inventory=inventory)
+    try:
+        data = json.loads(request.body)
+        action = data.get('action')
+        amount = int(data.get('amount', 1))
+        if action == 'increase':
+            item.quantity += amount
+            item.save()
+            ActivityLog.objects.create(item=item, user=request.user, action='quantity_increased', note=f'+{amount}')
+        elif action == 'decrease':
+            item.quantity = max(0, item.quantity - amount)
+            item.save()
+            ActivityLog.objects.create(item=item, user=request.user, action='quantity_decreased', note=f'-{amount}')
+        else:
+            return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
+
+        return JsonResponse({'success': True, 'quantity': item.quantity})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def create_category(request):
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Category name required'}, status=400)
+        if Category.objects.filter(user=request.user, name__iexact=name).exists():
+            return JsonResponse({'success': False, 'error': 'Category already exists'}, status=400)
+        cat = Category.objects.create(user=request.user, name=name)
+        return JsonResponse({'success': True, 'category': {'id': cat.id, 'name': cat.name}})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+def item_detail_api(request, inventory_id, item_id):
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    item = get_object_or_404(Item, id=item_id, inventory=inventory)
+    logs = list(item.logs.all().values('action', 'note', 'timestamp', 'user_id'))
+    return JsonResponse({
+        'success': True,
+        'item': {
+            'id': item.id,
+            'name': item.name,
+            'quantity': item.quantity,
+            'category': item.category.name if item.category else None,
+            'brand': item.brand,
+            'description': item.description,
+            'expiration_date': item.expiration_date.isoformat() if item.expiration_date else None,
+            'image_url': item.image.url if item.image else None,
+            'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
+        },
+        'logs': logs
+    })
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def bulk_action(request, inventory_id):
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    try:
+        data = json.loads(request.body)
+        action = data.get('action')
+        item_ids = data.get('item_ids', [])
+        amount = int(data.get('amount', 1))
+        items = Item.objects.filter(id__in=item_ids, inventory=inventory)
+        if action == 'delete':
+            for it in items:
+                ActivityLog.objects.create(item=it, user=request.user, action='deleted', note='Bulk delete')
+            items.delete()
+            return JsonResponse({'success': True})
+        elif action in ['increase', 'decrease']:
+            for it in items:
+                if action == 'increase':
+                    it.quantity += amount
+                    ActivityLog.objects.create(item=it, user=request.user, action='quantity_increased', note=f'+{amount}')
+                else:
+                    it.quantity = max(0, it.quantity - amount)
+                    ActivityLog.objects.create(item=it, user=request.user, action='quantity_decreased', note=f'-{amount}')
+                it.save()
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': 'Unknown bulk action'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

@@ -31,7 +31,7 @@
                         <div class="inventory-emoji">{{ inventory.emoji }}</div>
                         <div class="inventory-name">{{ inventory.name }}</div>
                         <div class="inventory-footer">
-                            <a href="#" class="btn btn-sm btn-primary">Open</a>
+                            <a href="{% url 'inventory_items' inventory.id %}" class="btn btn-sm btn-primary">Open</a>
                         </div>
                     </div>
                 {% endfor %}
