@@ -6,6 +6,11 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    # User Settings
+    path('settings/', views.user_settings, name='user_settings'),
+    path('api/settings/email/', views.change_email, name='change_email'),
+    path('api/settings/password/', views.change_password, name='change_password'),
+    path('api/settings/delete/', views.delete_account, name='delete_account'),
     path('api/inventories/create/', views.create_inventory, name='create_inventory'),
     path('inventories/<int:inventory_id>/update/', views.update_inventory, name='update_inventory'),
     path('inventories/<int:inventory_id>/delete/', views.delete_inventory, name='delete_inventory'),
