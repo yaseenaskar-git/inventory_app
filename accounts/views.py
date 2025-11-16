@@ -4,7 +4,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
-from .forms import RegisterForm, LoginForm
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .forms import RegisterForm, LoginForm, InventoryForm
+from .models import Inventory
+import json
 
 
 @require_http_methods(["GET", "POST"])
@@ -67,4 +71,66 @@ def logout_view(request):
 
 @login_required(login_url='login')
 def dashboard(request):
-    return render(request, 'accounts/dashboard.html', {'user': request.user})
+    inventories = Inventory.objects.filter(user=request.user)
+    return render(request, 'accounts/dashboard.html', {
+        'user': request.user,
+        'inventories': inventories
+    })
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def create_inventory(request):
+    """API endpoint to create a new inventory"""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        emoji = data.get('emoji', '📦')
+
+        # Validate input
+        if not name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Inventory name is required.'
+            }, status=400)
+
+        if len(name) > 255:
+            return JsonResponse({
+                'success': False,
+                'error': 'Inventory name must be less than 255 characters.'
+            }, status=400)
+
+        # Check for duplicate
+        if Inventory.objects.filter(user=request.user, name=name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'You already have an inventory with this name.'
+            }, status=400)
+
+        # Create inventory
+        inventory = Inventory.objects.create(
+            user=request.user,
+            name=name,
+            emoji=emoji
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Inventory "{name}" created successfully!',
+            'inventory': {
+                'id': inventory.id,
+                'name': inventory.name,
+                'emoji': inventory.emoji
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request format.'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
