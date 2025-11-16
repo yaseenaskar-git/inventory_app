@@ -1,16 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm
-from django.core.exceptions import ValidationError
-from .models import Inventory
-from .models import Item
-
-
-from django import forms
-from django.contrib.auth.models import User
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import Inventory, Item
+from .validators import StrongPasswordValidator
 
 
 class ChangeEmailForm(forms.Form):
@@ -69,7 +61,14 @@ class ChangePasswordForm(forms.Form):
             'placeholder': 'Enter your new password',
             'required': 'required'
         }),
-        help_text='Password must be at least 8 characters long.'
+        help_text=(
+            'Password must contain: '
+            'at least 8 characters, '
+            'an uppercase letter (A-Z), '
+            'a lowercase letter (a-z), '
+            'a digit (0-9), '
+            'and a special character (!@#$%^&*).'
+        )
     )
     confirm_password = forms.CharField(
         label='Confirm Password',
@@ -89,10 +88,11 @@ class ChangePasswordForm(forms.Form):
             if new_password != confirm_password:
                 raise ValidationError('Passwords do not match.')
 
-        # Validate password strength
+        # Validate password strength with custom validator
         if new_password:
+            validator = StrongPasswordValidator()
             try:
-                validate_password(new_password)
+                validator.validate(new_password)
             except ValidationError as e:
                 self.add_error('new_password', e)
 
@@ -145,7 +145,15 @@ class RegisterForm(forms.Form):
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter password'
-        })
+        }),
+        help_text=(
+            'Password must contain: '
+            'at least 8 characters, '
+            'an uppercase letter (A-Z), '
+            'a lowercase letter (a-z), '
+            'a digit (0-9), '
+            'and a special character (!@#$%^&*).'
+        )
     )
     password_confirm = forms.CharField(
         widget=forms.PasswordInput(attrs={
@@ -174,6 +182,14 @@ class RegisterForm(forms.Form):
         if password and password_confirm:
             if password != password_confirm:
                 raise ValidationError('Passwords do not match.')
+        
+        # Validate password strength with custom validator
+        if password:
+            validator = StrongPasswordValidator()
+            try:
+                validator.validate(password)
+            except ValidationError as e:
+                self.add_error('password', e)
         
         return cleaned_data
 

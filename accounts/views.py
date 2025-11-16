@@ -490,10 +490,11 @@ def change_password(request):
                 'error': 'Current password is incorrect.'
             }, status=401)
         
-        # Validate new password strength
-        from django.contrib.auth.password_validation import validate_password
+        # Validate new password strength using custom validator
+        from .validators import StrongPasswordValidator
+        validator = StrongPasswordValidator()
         try:
-            validate_password(new_password, user)
+            validator.validate(new_password, user)
         except Exception as e:
             return JsonResponse({
                 'success': False,
