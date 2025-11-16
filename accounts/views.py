@@ -92,6 +92,40 @@ def dashboard(request):
 
 @login_required(login_url='login')
 @require_http_methods(["POST"])
+def delete_inventory(request, inventory_id):
+    """Delete an inventory"""
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    inventory.delete()
+    return JsonResponse({'success': True, 'message': 'Inventory deleted'})
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def update_inventory(request, inventory_id):
+    """Update an inventory"""
+    try:
+        inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        emoji = data.get('emoji', '📦')
+        
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Name required'}, status=400)
+        
+        # Check for duplicate name (excluding current inventory)
+        if Inventory.objects.filter(user=request.user, name=name).exclude(id=inventory_id).exists():
+            return JsonResponse({'success': False, 'error': 'Inventory with this name already exists'}, status=400)
+        
+        inventory.name = name
+        inventory.emoji = emoji
+        inventory.save()
+        return JsonResponse({'success': True, 'message': 'Inventory updated'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
 def create_inventory(request):
     """API endpoint to create a new inventory"""
     try:
@@ -298,21 +332,18 @@ def create_category(request):
 def item_detail_api(request, inventory_id, item_id):
     inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
     item = get_object_or_404(Item, id=item_id, inventory=inventory)
-    logs = list(item.logs.all().values('action', 'note', 'timestamp', 'user_id'))
     return JsonResponse({
         'success': True,
         'item': {
             'id': item.id,
             'name': item.name,
             'quantity': item.quantity,
-            'category': item.category.name if item.category else None,
             'brand': item.brand,
             'description': item.description,
             'expiration_date': item.expiration_date.isoformat() if item.expiration_date else None,
             'image_url': item.image.url if item.image else None,
             'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
-        },
-        'logs': logs
+        }
     })
 
 

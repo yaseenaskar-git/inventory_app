@@ -7,6 +7,8 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('api/inventories/create/', views.create_inventory, name='create_inventory'),
+    path('inventories/<int:inventory_id>/update/', views.update_inventory, name='update_inventory'),
+    path('inventories/<int:inventory_id>/delete/', views.delete_inventory, name='delete_inventory'),
     # Inventory item pages and APIs
     path('inventories/<int:inventory_id>/items/', views.ItemListView.as_view(), name='inventory_items'),
     path('inventories/<int:inventory_id>/items/create/', views.ItemCreateView.as_view(), name='create_item'),

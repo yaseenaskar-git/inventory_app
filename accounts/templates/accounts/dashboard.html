@@ -161,7 +161,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const formAlert = document.getElementById('formAlert');
     const submitBtn = document.getElementById('submitBtn');
 
-    form.addEventListener('submit', async function(e) {
+    // Create inventory form submission - delegated
+    document.addEventListener('submit', async function(e) {
+        if (e.target.id !== 'createInventoryForm') return;
+        
         e.preventDefault();
         formAlert.classList.add('d-none');
         submitBtn.disabled = true;
@@ -204,12 +207,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.querySelectorAll('.edit-inventory-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+    // Edit inventory button - delegated
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.edit-inventory-btn')) {
+            const btn = e.target.closest('.edit-inventory-btn');
             const card = btn.closest('.inventory-card');
             const inventoryId = btn.getAttribute('data-inventory-id');
             const inventoryName = card.querySelector('.inventory-name').textContent.trim();
             const inventoryEmoji = card.querySelector('.inventory-emoji').textContent.trim();
+            
             document.getElementById('editInventoryId').value = inventoryId;
             document.getElementById('editInventoryName').value = inventoryName;
             document.querySelectorAll('.edit-emoji-radio').forEach(radio => {
@@ -218,7 +224,79 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('editInventoryFormAlert').classList.add('d-none');
             const modal = new bootstrap.Modal(document.getElementById('editInventoryModal'));
             modal.show();
-        });
+        }
+    });
+
+    // Delete inventory button - delegated
+    document.addEventListener('click', async function(e) {
+        if (e.target.id !== 'deleteInventoryBtn') return;
+        
+        if (!confirm('Are you sure you want to delete this inventory and all its items? This cannot be undone.')) return;
+        const inventoryId = document.getElementById('editInventoryId').value;
+        const editAlert = document.getElementById('editInventoryFormAlert');
+        
+        try {
+            const response = await fetch(`/accounts/inventories/${inventoryId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                editAlert.classList.remove('d-none', 'alert-danger');
+                editAlert.classList.add('alert-success');
+                editAlert.innerHTML = '<strong>✓ Success!</strong> Inventory deleted.';
+                setTimeout(() => { location.reload(); }, 1000);
+            } else {
+                editAlert.classList.remove('d-none', 'alert-success');
+                editAlert.classList.add('alert-danger');
+                editAlert.innerHTML = `<strong>✗ Error:</strong> ${data.error}`;
+            }
+        } catch (error) {
+            editAlert.classList.remove('d-none', 'alert-success');
+            editAlert.classList.add('alert-danger');
+            editAlert.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+        }
+    });
+
+    // Edit inventory form submission - delegated
+    document.addEventListener('submit', async function(e) {
+        if (e.target.id !== 'editInventoryForm') return;
+        
+        e.preventDefault();
+        const inventoryId = document.getElementById('editInventoryId').value;
+        const name = document.getElementById('editInventoryName').value.trim();
+        const emoji = document.querySelector('.edit-emoji-radio:checked').value;
+        const editAlert = document.getElementById('editInventoryFormAlert');
+        
+        try {
+            const response = await fetch(`/accounts/inventories/${inventoryId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: JSON.stringify({ name, emoji })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                editAlert.classList.remove('d-none', 'alert-danger');
+                editAlert.classList.add('alert-success');
+                editAlert.innerHTML = '<strong>✓ Success!</strong> Inventory updated.';
+                setTimeout(() => { location.reload(); }, 1000);
+            } else {
+                editAlert.classList.remove('d-none', 'alert-success');
+                editAlert.classList.add('alert-danger');
+                editAlert.innerHTML = `<strong>✗ Error:</strong> ${data.error}`;
+            }
+        } catch (error) {
+            editAlert.classList.remove('d-none', 'alert-success');
+            editAlert.classList.add('alert-danger');
+            editAlert.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+        }
     });
 });
 </script>

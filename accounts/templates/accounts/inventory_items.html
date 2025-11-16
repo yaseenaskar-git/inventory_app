@@ -29,7 +29,7 @@
     <div id="itemsGrid" class="inventory-grid">
         {% for item in items %}
             <div class="inventory-card" data-item-id="{{ item.id }}">
-                <button class="btn btn-sm btn-link edit-item-btn" data-item-id="{{ item.id }}" style="position:absolute; right:8px; top:8px; z-index:10;">✏️</button>
+                <button type="button" class="btn btn-sm btn-link edit-item-btn" data-item-id="{{ item.id }}" style="position:absolute; right:8px; top:8px; z-index:10; padding:0; border:none;">✏️</button>
                 <div class="inventory-emoji">
                     {% if item.image %}
                         {% thumbnail item.image "300x" quality=85 as im %}
@@ -139,153 +139,176 @@
 </div>
 
 <script>
-const inventoryId = "{{ inventory.id }}";
+document.addEventListener('DOMContentLoaded', function() {
+    const inventoryId = "{{ inventory.id }}";
 
-// Helper: fetch wrapper with JSON
-async function fetchJSON(url, opts={}){
-    const res = await fetch(url, opts);
-    return res.json();
-}
-
-// Image preview
-const itemImage = document.getElementById('itemImage');
-const imagePreview = document.getElementById('imagePreview');
-itemImage?.addEventListener('change', (e)=>{
-    const file = e.target.files[0];
-    if(!file) { imagePreview.innerHTML = ''; return; }
-    const url = URL.createObjectURL(file);
-    imagePreview.innerHTML = `<img src="${url}" style="max-width:140px; max-height:140px; border-radius:8px;"/> <div><button id="removePreview" class="btn btn-sm btn-link">Remove</button></div>`;
-    document.getElementById('removeImageWrap').classList.add('d-none');
-    document.getElementById('removePreview')?.addEventListener('click', ()=>{ itemImage.value=''; imagePreview.innerHTML=''; });
-});
-
-// Open create modal
-const createItemBtn = document.getElementById('createItemBtn');
-createItemBtn?.addEventListener('click', ()=>{
-    document.getElementById('itemModalTitle').textContent = 'Add Item';
-    document.getElementById('itemForm').reset();
-    document.getElementById('itemId').value = '';
-    document.getElementById('removeImageWrap').classList.add('d-none');
-    document.getElementById('deleteItemBtn').classList.add('d-none');
-    document.getElementById('itemFormAlert').classList.add('d-none');
-    imagePreview.innerHTML = '';
-});
-
-// Edit buttons
-document.querySelectorAll('.edit-item-btn').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-        const id = btn.dataset.itemId;
-        // fetch detail
-        const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/detail/`);
-        if(!res.success){ alert('Could not load item'); return; }
-        const item = res.item;
-        document.getElementById('itemModalTitle').textContent = 'Edit Item';
-        document.getElementById('itemId').value = item.id;
-        document.getElementById('itemName').value = item.name;
-        document.getElementById('itemQuantity').value = item.quantity;
-        document.getElementById('itemBrand').value = item.brand;
-        document.getElementById('itemDescription').value = item.description;
-        document.getElementById('itemExpiration').value = item.expiration_date || '';
-        if(item.image_url){
-            imagePreview.innerHTML = `<img src="${item.thumbnail_url || item.image_url}" style="max-width:140px; max-height:140px; border-radius:8px;"/>`;
-            document.getElementById('removeImageWrap').classList.remove('d-none');
-        } else {
-            imagePreview.innerHTML = '';
-            document.getElementById('removeImageWrap').classList.add('d-none');
-        }
-        document.getElementById('deleteItemBtn').classList.remove('d-none');
-        // show modal
-        const modalEl = document.getElementById('itemModal');
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-    });
-});
-
-// Submit item form (create or update) via FormData
-document.getElementById('itemForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const id = document.getElementById('itemId').value;
-    const url = id ? `/accounts/inventories/${inventoryId}/items/${id}/update/` : `/accounts/inventories/${inventoryId}/items/create/`;
-    const form = document.getElementById('itemForm');
-    const fd = new FormData(form);
-
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
-        body: fd
-    });
-    const data = await res.json();
-    if(data.success){
-        location.reload();
-    } else {
-        const alert = document.getElementById('itemFormAlert');
-        alert.classList.remove('d-none');
-        alert.classList.add('alert-danger');
-        alert.textContent = JSON.stringify(data.errors || data.error || 'Unknown error');
+    // Helper: fetch wrapper with JSON
+    async function fetchJSON(url, opts={}){
+        const res = await fetch(url, opts);
+        return res.json();
     }
-});
 
-// Delete item from modal
-document.getElementById('deleteItemBtn').addEventListener('click', async ()=>{
-    if(!confirm('Delete this item?')) return;
-    const id = document.getElementById('itemId').value;
-    const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/delete/`, {method:'POST', headers:{'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}});
-    if(res.success) location.reload(); else alert('Failed to delete');
-});
-
-// Quantity buttons
-document.querySelectorAll('.qty-increase').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-        const id = btn.dataset.itemId;
-        const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/quantity/`, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, body: JSON.stringify({action:'increase', amount:1})});
-        if(res.success){ document.querySelector(`.qty-number[data-item-id='${id}']`).textContent = res.quantity; }
+    // Image preview handler using event delegation
+    document.addEventListener('change', (e) => {
+        if (e.target.id === 'itemImage') {
+            const file = e.target.files[0];
+            const imagePreview = document.getElementById('imagePreview');
+            if(!file) { imagePreview.innerHTML = ''; return; }
+            const url = URL.createObjectURL(file);
+            imagePreview.innerHTML = `<img src="${url}" style="max-width:140px; max-height:140px; border-radius:8px;"/> <div><button id="removePreview" class="btn btn-sm btn-link">Remove</button></div>`;
+            document.getElementById('removeImageWrap').classList.add('d-none');
+            document.getElementById('removePreview')?.addEventListener('click', ()=>{ e.target.value=''; imagePreview.innerHTML=''; });
+        }
     });
-});
 
-document.querySelectorAll('.qty-decrease').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-        const id = btn.dataset.itemId;
-        const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/quantity/`, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, body: JSON.stringify({action:'decrease', amount:1})});
-        if(res.success){ document.querySelector(`.qty-number[data-item-id='${id}']`).textContent = res.quantity; }
+    // Create modal handler - delegated click on button with id
+    document.addEventListener('click', (e) => {
+        if (e.target.id === 'createItemBtn' || e.target.closest('#createItemBtn')) {
+            const imagePreview = document.getElementById('imagePreview');
+            document.getElementById('itemModalTitle').textContent = 'Add Item';
+            document.getElementById('itemForm').reset();
+            document.getElementById('itemId').value = '';
+            document.getElementById('removeImageWrap').classList.add('d-none');
+            document.getElementById('deleteItemBtn').classList.add('d-none');
+            document.getElementById('itemFormAlert').classList.add('d-none');
+            imagePreview.innerHTML = '';
+        }
     });
-});
 
-// Filter and sort
-document.getElementById('sortSelect')?.addEventListener('change', ()=>{ applyFilters(); });
-function applyFilters(){
-    const params = new URLSearchParams(window.location.search);
-    params.set('sort', document.getElementById('sortSelect').value);
-    window.location.search = params.toString();
-}
+    // Edit item buttons - delegated to parent container
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.edit-item-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const btn = e.target.closest('.edit-item-btn');
+            const id = btn.dataset.itemId;
+            const imagePreview = document.getElementById('imagePreview');
+            
+            try {
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/detail/`);
+                if(!res.success){ alert('Could not load item'); return; }
+                const item = res.item;
+                document.getElementById('itemModalTitle').textContent = 'Edit Item';
+                document.getElementById('itemId').value = item.id;
+                document.getElementById('itemName').value = item.name;
+                document.getElementById('itemQuantity').value = item.quantity;
+                document.getElementById('itemBrand').value = item.brand;
+                document.getElementById('itemDescription').value = item.description;
+                document.getElementById('itemExpiration').value = item.expiration_date || '';
+                if(item.image_url){
+                    imagePreview.innerHTML = `<img src="${item.thumbnail_url || item.image_url}" style="max-width:140px; max-height:140px; border-radius:8px;"/>`;
+                    document.getElementById('removeImageWrap').classList.remove('d-none');
+                } else {
+                    imagePreview.innerHTML = '';
+                    document.getElementById('removeImageWrap').classList.add('d-none');
+                }
+                document.getElementById('deleteItemBtn').classList.remove('d-none');
+                const modalEl = document.getElementById('itemModal');
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            } catch (error) {
+                console.error('Error loading item:', error);
+                alert('Error loading item details');
+            }
+        }
+    });
 
-// Debounce helper
-function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
+    // Form submission - delegated
+    document.addEventListener('submit', async (e) => {
+        if (e.target.id === 'itemForm') {
+            e.preventDefault();
+            const id = document.getElementById('itemId').value;
+            const url = id ? `/accounts/inventories/${inventoryId}/items/${id}/update/` : `/accounts/inventories/${inventoryId}/items/create/`;
+            const form = document.getElementById('itemForm');
+            const fd = new FormData(form);
+            const alert = document.getElementById('itemFormAlert');
 
-// Bulk select toggle
-let bulkMode = false;
-document.getElementById('toggleSelectBtn').addEventListener('click', ()=>{
-    bulkMode = !bulkMode;
-    document.querySelectorAll('.select-checkbox').forEach(cb=> cb.classList.toggle('d-none', !bulkMode));
-    document.getElementById('bulkActions').classList.toggle('d-none', !bulkMode);
-    document.getElementById('toggleSelectBtn').textContent = bulkMode ? 'Exit Select' : 'Select Multiple';
-});
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                    body: fd
+                });
+                const data = await res.json();
+                if(data.success){
+                    location.reload();
+                } else {
+                    alert.classList.remove('d-none');
+                    alert.classList.add('alert-danger');
+                    alert.textContent = JSON.stringify(data.errors || data.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Form submission error:', error);
+                alert.classList.remove('d-none');
+                alert.classList.add('alert-danger');
+                alert.textContent = 'Error submitting form: ' + error.message;
+            }
+        }
+    });
 
-function getSelectedIds(){ return Array.from(document.querySelectorAll('.select-checkbox:checked')).map(cb=> cb.closest('.inventory-card').dataset.itemId); }
+    // Delete item button - delegated
+    document.addEventListener('click', async (e) => {
+        if (e.target.id === 'deleteItemBtn') {
+            if(!confirm('Delete this item?')) return;
+            const id = document.getElementById('itemId').value;
+            try {
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/delete/`, {method:'POST', headers:{'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}});
+                if(res.success) location.reload(); else alert('Failed to delete');
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Error deleting item');
+            }
+        }
+    });
 
-document.getElementById('bulkDelete').addEventListener('click', async ()=>{
-    const ids = getSelectedIds(); if(!ids.length) return alert('No items selected');
-    if(!confirm('Delete selected items?')) return;
-    const res = await fetchJSON(`/accounts/inventories/${inventoryId}/bulk/`, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, body: JSON.stringify({action:'delete', item_ids: ids})});
-    if(res.success) location.reload(); else alert('Bulk delete failed');
-});
+    // Quantity increase buttons - delegated
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.qty-increase')) {
+            const btn = e.target.closest('.qty-increase');
+            const id = btn.dataset.itemId;
+            try {
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/quantity/`, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, 
+                    body: JSON.stringify({action:'increase', amount:1})
+                });
+                if(res.success){ 
+                    document.querySelector(`.qty-number[data-item-id='${id}']`).textContent = res.quantity; 
+                }
+            } catch (error) {
+                console.error('Quantity increase error:', error);
+            }
+        }
+    });
 
-document.getElementById('bulkIncrease').addEventListener('click', async ()=>{ const ids = getSelectedIds(); if(!ids.length) return alert('No items selected'); const res = await fetchJSON(`/accounts/inventories/${inventoryId}/bulk/`, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, body: JSON.stringify({action:'increase', item_ids: ids, amount:1})}); if(res.success) location.reload(); else alert('Bulk increase failed'); });
+    // Quantity decrease buttons - delegated
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.qty-decrease')) {
+            const btn = e.target.closest('.qty-decrease');
+            const id = btn.dataset.itemId;
+            try {
+                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/quantity/`, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, 
+                    body: JSON.stringify({action:'decrease', amount:1})
+                });
+                if(res.success){ 
+                    document.querySelector(`.qty-number[data-item-id='${id}']`).textContent = res.quantity; 
+                }
+            } catch (error) {
+                console.error('Quantity decrease error:', error);
+            }
+        }
+    });
 
-document.getElementById('bulkDecrease').addEventListener('click', async ()=>{ const ids = getSelectedIds(); if(!ids.length) return alert('No items selected'); const res = await fetchJSON(`/accounts/inventories/${inventoryId}/bulk/`, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}, body: JSON.stringify({action:'decrease', item_ids: ids, amount:1})}); if(res.success) location.reload(); else alert('Bulk decrease failed'); });
-
-// Toggle logs
-document.getElementById('toggleLogs').addEventListener('click', ()=>{
-    const el = document.getElementById('activityLog'); el.classList.toggle('d-none');
+    // Sort select change handler - delegated
+    document.addEventListener('change', (e) => {
+        if (e.target.id === 'sortSelect') {
+            const params = new URLSearchParams(window.location.search);
+            params.set('sort', e.target.value);
+            window.location.search = params.toString();
+        }
+    });
 });
 </script>
 {% endblock %}
