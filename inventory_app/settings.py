@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-v0(ai^4rse$(_=s6106tj$1d8cv6(g#90w*_hon37q_!bjii6^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # Cloud Run needs this, restrict in production
 
 
 # Application definition

@@ -23,8 +23,13 @@ RUN mkdir -p /app/media /app/staticfiles
 # Collect static files
 RUN python manage.py collectstatic --noinput --clear 2>/dev/null || true
 
-# Expose port
-EXPOSE 8000
+# Expose port (Cloud Run uses 8080)
+EXPOSE 8080
 
-# Run Django development server (change to gunicorn for production)
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Set environment for Cloud Run
+ENV PORT=8080
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Run Django on port 8080 for Cloud Run (use PORT env variable)
+CMD ["python", "manage.py", "runserver", "0.0.0.0:${PORT:-8080}"]
