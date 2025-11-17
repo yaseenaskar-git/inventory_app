@@ -31,5 +31,9 @@ ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Run Django on port 8080 for Cloud Run (use PORT env variable)
-CMD ["python", "manage.py", "runserver", "0.0.0.0:${PORT:-8080}"]
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Run startup script
+CMD ["/app/start.sh"]
