@@ -1,0 +1,58 @@
+# Google Cloud Build configuration for Inventory App
+# Deploy to Cloud Run or GKE
+
+steps:
+  # Step 1: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/inventory-app:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/inventory-app:latest'
+      - '.'
+
+  # Step 2: Push image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/inventory-app:$SHORT_SHA'
+
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/'
+      - '--image=gcr.io/$PROJECT_ID/inventory-app:$SHORT_SHA'
+      - '--location=us-central1'
+      - '--cluster=inventory-cluster'
+
+  # Step 4: Run database migrations
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=inventory-cluster'
+    args:
+      - 'kubectl'
+      - 'exec'
+      - '-it'
+      - 'deployment/inventory-app'
+      - '--'
+      - 'python'
+      - 'manage.py'
+      - 'migrate'
+
+# Build configuration
+timeout: '1800s'
+images:
+  - 'gcr.io/$PROJECT_ID/inventory-app:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/inventory-app:latest'
+
+# Substitution variables (can be customized)
+substitutions:
+  _REGION: 'us-central1'
+  _CLUSTER: 'inventory-cluster'
+
+# Build options
+options:
+  machineType: 'N1_HIGHCPU_8'

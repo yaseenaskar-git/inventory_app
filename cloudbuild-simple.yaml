@@ -1,0 +1,41 @@
+# Simplified Google Cloud Run deployment
+# This is easier than the full Kubernetes setup
+
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/inventory-app:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/inventory-app:latest'
+      - '.'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/inventory-app'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--service-name=inventory-app'
+      - '--image=gcr.io/$PROJECT_ID/inventory-app:$SHORT_SHA'
+      - '--region=$_REGION'
+      - '--platform=managed'
+
+# Configuration
+timeout: '1800s'
+images:
+  - 'gcr.io/$PROJECT_ID/inventory-app:latest'
+
+substitutions:
+  _REGION: 'us-central1'
+
+options:
+  machineType: 'N1_HIGHCPU_4'
