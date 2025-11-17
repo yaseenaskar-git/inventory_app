@@ -1,71 +1,178 @@
-# Inventory Management System
+# Inventory App
 
-A Django-based inventory management application with secure user authentication, allowing users to create accounts, manage inventories, and track items.
+A Django-based inventory management application for tracking items, managing inventories, and organizing personal or business stock with user authentication and image uploads.
 
-## 🎯 Current Status: Phase 1 - Authentication Complete ✅
+## 📊 Technology Stack
 
-### ✨ Features Implemented
+### Backend
+- **Framework**: Django 5.2.8
+- **Language**: Python 3.13
+- **Server**: Django Development Server / Gunicorn
+- **Authentication**: Django built-in auth system with custom password validation
 
-#### User Authentication (COMPLETE)
-- ✅ **User Registration**: Email-based account creation with secure password hashing
-- ✅ **User Login**: Secure credential verification with session management
-- ✅ **User Logout**: Secure session termination
-- ✅ **Dashboard**: Protected user dashboard with personalized content
-- ✅ **Access Control**: Authentication-required routes using `@login_required`
-- ✅ **Error Handling**: User-friendly error messages for validation failures
-- ✅ **Responsive UI**: Bootstrap 5 styling for mobile-friendly interface
-- ✅ **CSRF Protection**: Token-based security on all forms
-- ✅ **Password Security**: PBKDF2 hashing with strength validation
+### Frontend
+- **HTML/Template Engine**: Django Templates (HTML5)
+- **Styling**: Bootstrap 5 CSS Framework
+- **JavaScript**: Vanilla JavaScript (event delegation)
+- **Image Processing**: Sorl-Thumbnail for image optimization
 
-## 📋 Technology Stack
+### Database
+- **Development**: SQLite3
+- **Production**: PostgreSQL 16
+- **ORM**: Django ORM
 
-- **Backend**: Python 3.8+, Django 5.2.8
-- **Frontend**: HTML5, CSS3, Bootstrap 5
-- **Database**: SQLite3 (Development)
-- **Authentication**: Django's built-in auth system
-- **Testing**: Django TestCase framework
+### APIs & Libraries
+- **Image Processing**: Pillow 12.0.0
+- **Thumbnail Generation**: sorl-thumbnail 12.9.0
+- **Database Adapter**: psycopg2-binary (PostgreSQL)
+- **Container**: Docker & Docker Compose
+- **Cloud**: Google Cloud Run
 
-## 🚀 Quick Start
+## ✨ Main Features
+
+### 1. **User Authentication**
+- ✅ Secure user registration with email
+- ✅ Strong password validation (8+ chars, uppercase, lowercase, digit, special char)
+- ✅ User login/logout with session management
+- ✅ Protected dashboard and settings pages
+
+### 2. **Inventory Management**
+- ✅ Create and manage multiple inventories
+- ✅ Organize items within inventories
+- ✅ Add/Edit/Delete items
+- ✅ Track item quantities with +/- buttons
+
+### 3. **Item Management**
+- ✅ Item name, brand, description, quantity
+- ✅ Expiration date tracking
+- ✅ Image uploads with thumbnail generation
+- ✅ Low stock alerts (≤3 items)
+- ✅ Expiring soon badges (≤7 days)
+
+### 4. **Sorting & Filtering**
+- ✅ Sort by expiration date (soon → late / late → soon)
+- ✅ Sort by quantity (low → high / high → low)
+- ✅ Pagination for large item lists
+
+### 5. **User Settings**
+- ✅ Change email address
+- ✅ Change password with strong validation
+- ✅ Delete account (API endpoint)
+
+## 🚀 How to Run in Web Browser
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.13+
 - pip (Python package manager)
+- Git
 
-### Setup (3 steps)
+### Quick Start (4 Steps)
 
-**Option 1: Automated Setup (Recommended)**
 ```bash
-# Windows
-setup.bat
+# 1. Clone the repository
+git clone https://github.com/yaseenaskar-git/inventory_app.git
+cd inventory_app
 
-# macOS/Linux
-bash setup.sh
-```
-
-**Option 2: Manual Setup**
-```bash
-# 1. Create and activate virtual environment
+# 2. Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate  # macOS/Linux
 # or
 venv\Scripts\activate  # Windows
 
-# 2. Install dependencies
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 3. Run migrations
+# 4. Setup database and start server
+python manage.py makemigrations
 python manage.py migrate
-
-# 4. Create admin account
 python manage.py createsuperuser
-
-# 5. Start development server
 python manage.py runserver
 ```
 
 ### Access the Application
-- **Frontend**: http://localhost:8000/
-- **Admin Panel**: http://localhost:8000/admin/
+- **Web App**: http://localhost:8000
+- **Admin Panel**: http://localhost:8000/admin
+- **Login Page**: http://localhost:8000/accounts/login
+
+### Common Commands
+
+```bash
+# Start development server
+python manage.py runserver
+
+# Run all tests
+python manage.py test accounts
+
+# Create superuser
+python manage.py createsuperuser
+
+# Database migrations
+python manage.py makemigrations
+python manage.py migrate
+
+# Collect static files
+python manage.py collectstatic
+
+# Django shell
+python manage.py shell
+```
+
+## 🐳 How to Run with Docker
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Git (to clone the repository)
+
+### Quick Start (3 Commands)
+
+```bash
+# 1. Clone and setup
+git clone https://github.com/yaseenaskar-git/inventory_app.git
+cd inventory_app
+cp .env.example .env
+
+# 2. Build and run
+docker-compose build
+docker-compose up -d
+
+# 3. Initialize database
+docker-compose exec web python manage.py makemigrations
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py createsuperuser
+docker-compose exec web python manage.py collectstatic --noinput
+```
+
+### Access the Application
+- **Web App**: http://localhost:8000
+- **Admin Panel**: http://localhost:8000/admin
+
+### Common Docker Commands
+
+```bash
+# View logs
+docker-compose logs -f web
+
+# Access Django shell
+docker-compose exec web python manage.py shell
+
+# Run migrations
+docker-compose exec web python manage.py migrate
+
+# Create superuser
+docker-compose exec web python manage.py createsuperuser
+
+# Stop services
+docker-compose down
+
+# Rebuild images
+docker-compose build --no-cache
+```
+
+### Docker Services
+- **Web**: Django app on port 8000
+- **Database**: PostgreSQL on port 5432
+- **Media Volume**: Stores uploaded images
+- **Database Volume**: Persistent PostgreSQL data
 
 ## 📁 Project Structure
 
@@ -247,27 +354,5 @@ For setup issues or questions:
 2. Review [PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md)
 3. Refer to [Django Documentation](https://docs.djangoproject.com/)
 
-## ✅ Verification Checklist
-
-- [x] User authentication system
-- [x] Registration with validation
-- [x] Login with session management
-- [x] Logout functionality
-- [x] Dashboard access control
-- [x] Error handling and messages
-- [x] Responsive UI design
-- [x] Unit tests
-- [x] Complete documentation
-- [x] Setup scripts
-
----
-
-**Development Status**: Phase 1 Complete ✅
-**Last Updated**: November 15, 2025
 **Django Version**: 5.2.8
 **Python Version**: 3.8+
-
-Ready to build! 🚀
-
-
-
