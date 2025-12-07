@@ -346,6 +346,7 @@ def create_category(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@require_http_methods(["GET", "POST"])
 def item_detail_api(request, inventory_id, item_id):
     try:
         # Verify user is authenticated

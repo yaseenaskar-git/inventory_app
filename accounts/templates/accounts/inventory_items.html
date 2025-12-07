@@ -191,16 +191,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`Fetching item details for inventory ${inventoryId}, item ${id}`);
                 const url = `/accounts/inventories/${inventoryId}/items/${id}/detail/`;
                 console.log('Request URL:', url);
-                console.log('Cookies enabled:', navigator.cookieEnabled);
-                console.log('Document cookie:', document.cookie ? 'Present' : 'Empty');
+                
+                // Get CSRF token from page
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+                console.log('CSRF token present:', !!csrfToken);
                 
                 const response = await fetch(url, {
-                    method: 'GET',
-                    credentials: 'same-origin',  // Send cookies for same-origin
+                    method: 'POST',  // Changed to POST to ensure proper session handling
+                    credentials: 'same-origin',
                     headers: {
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({})
                 });
                 console.log(`Response status: ${response.status}`);
                 console.log('Response headers:', {
