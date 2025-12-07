@@ -1,0 +1,106 @@
+# Cloud Build CI/CD Configuration for Inventory App
+# This configuration runs automated tests and deploys to Cloud Run
+# Triggers: On every push to main branch
+
+steps:
+  # Step 1: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/inventory_app:$SHORT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/inventory_app:latest'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+
+  # Step 2: Run backend tests
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'run-backend-tests'
+    args:
+      - 'run'
+      - '--rm'
+      - '-w'
+      - '/app'
+      - '-e'
+      - 'DEBUG=False'
+      - '-e'
+      - 'ALLOWED_HOSTS=localhost,127.0.0.1'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/inventory_app:$SHORT_SHA'
+      - 'python'
+      - 'manage.py'
+      - 'test'
+      - 'accounts.tests.test_backend'
+      - '--verbosity=2'
+    waitFor: ['build-image']
+
+  # Step 3: Run frontend tests
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'run-frontend-tests'
+    args:
+      - 'run'
+      - '--rm'
+      - '-w'
+      - '/app'
+      - '-e'
+      - 'DEBUG=False'
+      - '-e'
+      - 'ALLOWED_HOSTS=localhost,127.0.0.1'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/inventory_app:$SHORT_SHA'
+      - 'python'
+      - 'manage.py'
+      - 'test'
+      - 'accounts.tests.test_frontend'
+      - '--verbosity=2'
+    waitFor: ['run-backend-tests']
+
+  # Step 4: Push image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/inventory_app:$SHORT_SHA'
+    waitFor: ['run-frontend-tests']
+
+  # Step 5: Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/run'
+    id: 'deploy-cloud-run'
+    args:
+      - 'deploy'
+      - 'inventory-app'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/inventory_app:$SHORT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+    env:
+      - 'CLOUDSDK_RUN_REGION=us-central1'
+      - 'PROJECT_ID=$PROJECT_ID'
+    waitFor: ['push-image']
+
+# Image to push to registry
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/inventory_app:$SHORT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/inventory_app:latest'
+
+# Build timeout (30 minutes)
+timeout: '1800s'
+
+# On-failure behavior
+onFailure:
+  - 'NOTIFY'
+
+# Build options
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
