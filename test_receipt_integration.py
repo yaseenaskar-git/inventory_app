@@ -50,7 +50,6 @@ class ReceiptGalleryIntegrationTests(TestCase):
         url = reverse('create_receipt', args=[self.inventory.id])
         data = {
             'name': 'Office Supplies',
-            'date': str(date.today()),
             'description': 'Monthly office supplies purchase'
         }
         response = self.client.post(url, data=data)
@@ -66,7 +65,6 @@ class ReceiptGalleryIntegrationTests(TestCase):
         url = reverse('create_receipt', args=[self.inventory.id])
         data = {
             'name': '',  # Missing name
-            'date': str(date.today()),
             'description': 'Monthly supplies'
         }
         response = self.client.post(url, data=data)
@@ -75,26 +73,11 @@ class ReceiptGalleryIntegrationTests(TestCase):
         self.assertFalse(result['success'])
         self.assertIn('name is required', result['error'].lower())
 
-    def test_create_receipt_without_date_fails(self):
-        """Test that creating receipt without date fails"""
-        url = reverse('create_receipt', args=[self.inventory.id])
-        data = {
-            'name': 'Office Supplies',
-            'date': '',  # Missing date
-            'description': 'Monthly supplies'
-        }
-        response = self.client.post(url, data=data)
-        result = response.json()
-        
-        self.assertFalse(result['success'])
-        self.assertIn('date is required', result['error'].lower())
-
     def test_delete_receipt(self):
         """Test deleting a receipt"""
         receipt = Receipt.objects.create(
             inventory=self.inventory,
             name='Test Receipt',
-            date=date.today(),
             description='Test'
         )
         url = reverse('delete_receipt', args=[self.inventory.id, receipt.id])
@@ -109,13 +92,11 @@ class ReceiptGalleryIntegrationTests(TestCase):
         receipt = Receipt.objects.create(
             inventory=self.inventory,
             name='Original Name',
-            date=date.today(),
             description='Original description'
         )
         url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
         data = {
             'name': 'Updated Name',
-            'date': str(date.today()),
             'description': 'Updated description'
         }
         response = self.client.post(url, data=data)
@@ -130,8 +111,7 @@ class ReceiptGalleryIntegrationTests(TestCase):
         """Test that updating receipt without name fails"""
         receipt = Receipt.objects.create(
             inventory=self.inventory,
-            name='Original Name',
-            date=date.today()
+            name='Original Name'
         )
         url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
         data = {
@@ -142,27 +122,6 @@ class ReceiptGalleryIntegrationTests(TestCase):
         
         self.assertFalse(result['success'])
         self.assertIn('name is required', result['error'].lower())
-
-    def test_update_receipt_date_optional(self):
-        """Test that updating receipt without changing date keeps original date"""
-        original_date = date.today()
-        receipt = Receipt.objects.create(
-            inventory=self.inventory,
-            name='Original Name',
-            date=original_date
-        )
-        url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
-        data = {
-            'name': 'Updated Name',
-            # No date provided
-        }
-        response = self.client.post(url, data=data)
-        result = response.json()
-        
-        self.assertTrue(result['success'])
-        receipt.refresh_from_db()
-        self.assertEqual(receipt.name, 'Updated Name')
-        self.assertEqual(receipt.date, original_date)
 
     def test_user_cannot_access_other_users_receipts(self):
         """Test that users can't access other users' receipts"""
