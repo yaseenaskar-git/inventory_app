@@ -188,8 +188,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const imagePreview = document.getElementById('imagePreview');
             
             try {
-                const res = await fetchJSON(`/accounts/inventories/${inventoryId}/items/${id}/detail/`);
-                if(!res.success){ alert('Could not load item'); return; }
+                console.log(`Fetching item details for inventory ${inventoryId}, item ${id}`);
+                const response = await fetch(`/accounts/inventories/${inventoryId}/items/${id}/detail/`);
+                console.log(`Response status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                const res = await response.json();
+                console.log('Item data:', res);
+                if(!res.success){ alert('Could not load item: ' + (res.error || 'Unknown error')); return; }
                 const item = res.item;
                 document.getElementById('itemModalTitle').textContent = 'Edit Item';
                 document.getElementById('itemId').value = item.id;
@@ -211,7 +218,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.show();
             } catch (error) {
                 console.error('Error loading item:', error);
-                alert('Error loading item details');
+                console.error('Stack trace:', error.stack);
+                alert('Error loading item details: ' + error.message);
             }
         }
     });

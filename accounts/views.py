@@ -350,6 +350,16 @@ def create_category(request):
 def item_detail_api(request, inventory_id, item_id):
     inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
     item = get_object_or_404(Item, id=item_id, inventory=inventory)
+    
+    # Handle thumbnail generation safely
+    thumbnail_url = None
+    if item.image:
+        try:
+            thumbnail_url = get_thumbnail(item.image, '300x300', quality=85).url
+        except Exception as e:
+            # Fallback to original image if thumbnail fails
+            thumbnail_url = item.image.url
+    
     return JsonResponse({
         'success': True,
         'item': {
@@ -360,7 +370,7 @@ def item_detail_api(request, inventory_id, item_id):
             'description': item.description,
             'expiration_date': item.expiration_date.isoformat() if item.expiration_date else None,
             'image_url': item.image.url if item.image else None,
-            'thumbnail_url': get_thumbnail(item.image, '300x', quality=85).url if item.image else None,
+            'thumbnail_url': thumbnail_url,
         }
     })
 
