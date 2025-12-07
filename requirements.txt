@@ -4,3 +4,4 @@ sorl-thumbnail==12.9.0
 psycopg2-binary==2.9.10
 setuptools>=65.0.0
 gunicorn==22.0.0
+whitenoise==6.7.0
