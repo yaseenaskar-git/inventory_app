@@ -148,6 +148,20 @@ class TemplateRenderingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Milk', response.content)
 
+    def test_item_displays_expired_badge(self):
+        """Test expired badge displays for past expiration date"""
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        inventory = Inventory.objects.create(user=self.user, name='Kitchen', emoji='🍳')
+        expired_date = timezone.localdate() - timedelta(days=2)
+        item = Item.objects.create(inventory=inventory, name='Old Milk', quantity=2, expiration_date=expired_date)
+        
+        response = self.client.get(reverse('inventory_items', args=[inventory.id]))
+        self.assertEqual(response.status_code, 200)
+        # Check for expired badge
+        self.assertIn(b'Expired', response.content)
+
     def test_navbar_displays_for_authenticated_users(self):
         """Test navbar displays for authenticated users"""
         response = self.client.get(reverse('dashboard'))

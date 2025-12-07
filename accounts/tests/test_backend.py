@@ -316,6 +316,22 @@ class ItemManagementTests(TestCase):
         )
         self.assertTrue(item.is_expiring_soon())
 
+    def test_item_expired_alert(self):
+        """Test expired alert for items past expiration date"""
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        today = timezone.localdate()
+        expired_date = today - timedelta(days=2)
+        
+        item = Item.objects.create(
+            inventory=self.inventory,
+            name='Old Milk',
+            expiration_date=expired_date
+        )
+        self.assertTrue(item.is_expired())
+        self.assertFalse(item.is_expiring_soon())  # Expired items are not "expiring soon"
+
     def test_update_item(self):
         """Test updating item details"""
         item = Item.objects.create(

@@ -47,8 +47,10 @@
                         <button class="btn btn-sm btn-outline-secondary qty-increase" data-item-id="{{ item.id }}">+</button>
                     </div>
                     <div class="mt-2">
-                        {% if item.is_expiring_soon %}
-                            <span class="badge bg-warning text-dark">Expiring soon</span>
+                        {% if item.is_expired %}
+                            <span class="badge bg-danger">🔴 Expired</span>
+                        {% elif item.is_expiring_soon %}
+                            <span class="badge bg-warning text-dark">⏰ Expiring soon</span>
                         {% endif %}
                     </div>
                 </div>

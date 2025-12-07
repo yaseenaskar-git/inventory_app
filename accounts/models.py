@@ -62,3 +62,10 @@ class Item(models.Model):
         today = timezone.localdate()
         delta = (self.expiration_date - today).days
         return delta <= 7 and delta >= 0
+
+    def is_expired(self):
+        from django.utils import timezone
+        if not self.expiration_date:
+            return False
+        today = timezone.localdate()
+        return self.expiration_date < today
