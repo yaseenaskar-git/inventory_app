@@ -192,8 +192,9 @@
 
                     <!-- Date Field -->
                     <div class="mb-3">
-                        <label for="editReceiptDate" class="form-label">Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="editReceiptDate" name="date" required>
+                        <label for="editReceiptDate" class="form-label">Date (optional)</label>
+                        <input type="date" class="form-control" id="editReceiptDate" name="date">
+                        <small class="form-text text-muted">Leave blank to keep current date</small>
                     </div>
 
                     <!-- Description Field -->
@@ -407,16 +408,9 @@ document.getElementById('editReceiptForm').addEventListener('submit', async (e) 
 
     // Validation
     const name = document.getElementById('editReceiptName').value.trim();
-    const date = document.getElementById('editReceiptDate').value;
 
     if (!name) {
         errorAlert.textContent = 'Receipt name is required';
-        errorAlert.style.display = 'block';
-        return;
-    }
-
-    if (!date) {
-        errorAlert.textContent = 'Date is required';
         errorAlert.style.display = 'block';
         return;
     }

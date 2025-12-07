@@ -672,11 +672,9 @@ def update_receipt(request, inventory_id, receipt_id):
         if not name:
             return JsonResponse({'success': False, 'error': 'Receipt name is required'}, status=400)
         
-        if not date:
-            return JsonResponse({'success': False, 'error': 'Date is required'}, status=400)
-        
         receipt.name = name
-        receipt.date = date
+        if date:
+            receipt.date = date
         receipt.description = description
         
         if image:

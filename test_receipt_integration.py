@@ -136,13 +136,33 @@ class ReceiptGalleryIntegrationTests(TestCase):
         url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
         data = {
             'name': '',  # Missing name
-            'date': str(date.today())
         }
         response = self.client.post(url, data=data)
         result = response.json()
         
         self.assertFalse(result['success'])
         self.assertIn('name is required', result['error'].lower())
+
+    def test_update_receipt_date_optional(self):
+        """Test that updating receipt without changing date keeps original date"""
+        original_date = date.today()
+        receipt = Receipt.objects.create(
+            inventory=self.inventory,
+            name='Original Name',
+            date=original_date
+        )
+        url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
+        data = {
+            'name': 'Updated Name',
+            # No date provided
+        }
+        response = self.client.post(url, data=data)
+        result = response.json()
+        
+        self.assertTrue(result['success'])
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.name, 'Updated Name')
+        self.assertEqual(receipt.date, original_date)
 
     def test_user_cannot_access_other_users_receipts(self):
         """Test that users can't access other users' receipts"""
