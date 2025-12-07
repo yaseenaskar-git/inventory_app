@@ -44,6 +44,13 @@ CSRF_COOKIE_SECURE = True  # Secure in production
 CSRF_COOKIE_HTTPONLY = False  # Must be False for CSRF token to work with forms
 CSRF_COOKIE_SAMESITE = 'Lax'
 
+# Session Settings
+SESSION_COOKIE_SECURE = True  # Use HTTPS only
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript from accessing session
+SESSION_COOKIE_SAMESITE = 'Lax'  # Allow same-site requests to include cookies
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
 
 # Application definition
 

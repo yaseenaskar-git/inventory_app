@@ -189,16 +189,27 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 console.log(`Fetching item details for inventory ${inventoryId}, item ${id}`);
-                const response = await fetch(`/accounts/inventories/${inventoryId}/items/${id}/detail/`, {
+                const url = `/accounts/inventories/${inventoryId}/items/${id}/detail/`;
+                console.log('Request URL:', url);
+                console.log('Cookies enabled:', navigator.cookieEnabled);
+                console.log('Document cookie:', document.cookie ? 'Present' : 'Empty');
+                
+                const response = await fetch(url, {
                     method: 'GET',
-                    credentials: 'same-origin',
+                    credentials: 'include',  // Changed from 'same-origin' to 'include'
                     headers: {
                         'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
                 console.log(`Response status: ${response.status}`);
+                console.log('Response headers:', {
+                    'content-type': response.headers.get('content-type')
+                });
                 
                 if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Response text:', text.substring(0, 500));
                     throw new Error(`Server returned ${response.status}: ${response.statusText}`);
                 }
                 
