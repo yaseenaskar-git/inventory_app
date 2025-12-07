@@ -45,9 +45,9 @@ CSRF_COOKIE_HTTPONLY = False  # Must be False for CSRF token to work with forms
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Session Settings
-SESSION_COOKIE_SECURE = False  # Allow non-secure cookies (Cloud Run handles HTTPS)
+SESSION_COOKIE_SECURE = False  # Set to False to allow cookies over HTTP (Cloud Run proxies HTTPS)
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript from accessing session
-SESSION_COOKIE_SAMESITE = 'None'  # Allow cross-origin (but same-site since it's same URL)
+SESSION_COOKIE_SAMESITE = 'Lax'  # Allow same-site requests to include cookies
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
