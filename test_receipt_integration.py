@@ -50,7 +50,8 @@ class ReceiptGalleryIntegrationTests(TestCase):
         url = reverse('create_receipt', args=[self.inventory.id])
         data = {
             'name': 'Office Supplies',
-            'description': 'Monthly office supplies purchase'
+            'description': 'Monthly office supplies purchase',
+            'date': '2025-12-07'
         }
         response = self.client.post(url, data=data)
         result = response.json()
@@ -65,7 +66,8 @@ class ReceiptGalleryIntegrationTests(TestCase):
         url = reverse('create_receipt', args=[self.inventory.id])
         data = {
             'name': '',  # Missing name
-            'description': 'Monthly supplies'
+            'description': 'Monthly supplies',
+            'date': '2025-12-07'
         }
         response = self.client.post(url, data=data)
         result = response.json()
@@ -78,7 +80,8 @@ class ReceiptGalleryIntegrationTests(TestCase):
         receipt = Receipt.objects.create(
             inventory=self.inventory,
             name='Test Receipt',
-            description='Test'
+            description='Test',
+            date=date(2025, 12, 7)
         )
         url = reverse('delete_receipt', args=[self.inventory.id, receipt.id])
         response = self.client.post(url, data={})
@@ -92,12 +95,14 @@ class ReceiptGalleryIntegrationTests(TestCase):
         receipt = Receipt.objects.create(
             inventory=self.inventory,
             name='Original Name',
-            description='Original description'
+            description='Original description',
+            date=date(2025, 12, 7)
         )
         url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
         data = {
             'name': 'Updated Name',
-            'description': 'Updated description'
+            'description': 'Updated description',
+            'date': '2025-12-08'
         }
         response = self.client.post(url, data=data)
         result = response.json()
@@ -111,11 +116,13 @@ class ReceiptGalleryIntegrationTests(TestCase):
         """Test that updating receipt without name fails"""
         receipt = Receipt.objects.create(
             inventory=self.inventory,
-            name='Original Name'
+            name='Original Name',
+            date=date(2025, 12, 7)
         )
         url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
         data = {
             'name': '',  # Missing name
+            'date': '2025-12-08'
         }
         response = self.client.post(url, data=data)
         result = response.json()

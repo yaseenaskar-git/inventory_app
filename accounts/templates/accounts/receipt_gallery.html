@@ -47,7 +47,7 @@
                         <h5 class="card-title">{{ receipt.name }}</h5>
                         
                         <p class="card-text small text-muted">
-                            <i class="fas fa-calendar-alt"></i> {{ receipt.created_at|date:"M d, Y" }}
+                            <i class="fas fa-calendar-alt"></i> {{ receipt.date|date:"M d, Y" }}
                         </p>
 
                         {% if receipt.description %}
@@ -59,14 +59,14 @@
                     </div>
 
                     <!-- Edit Button (Pencil Icon) -->
-                    <button type="button" class="btn btn-sm btn-link edit-receipt-btn" data-receipt-id="{{ receipt.id }}" style="position:absolute; right:8px; top:8px; z-index:20; padding:0; border:none; font-size:18px; cursor:pointer; background:rgba(255,255,255,0.9); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center;" data-bs-toggle="modal" data-bs-target="#editReceiptModal" onclick="prepareEditReceipt({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.description|escapejs }}')">✏️</button>
+                    <button type="button" class="btn btn-sm btn-link edit-receipt-btn" data-receipt-id="{{ receipt.id }}" style="position:absolute; right:8px; top:8px; z-index:20; padding:0; border:none; font-size:18px; cursor:pointer; background:rgba(255,255,255,0.9); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center;" data-bs-toggle="modal" data-bs-target="#editReceiptModal" onclick="prepareEditReceipt({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.description|escapejs }}', '{{ receipt.date|date:'Y-m-d' }}')">✏️</button>
 
                     <!-- Action Buttons -->
                     <div class="card-footer bg-white border-top">
-                        <button type="button" class="btn btn-sm btn-info w-100 mb-2" data-bs-toggle="modal" data-bs-target="#viewReceiptModal" onclick="viewReceiptDetails({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.description|escapejs }}', '{% if receipt.image %}{{ receipt.image.url }}{% endif %}')">
+                        <button type="button" class="btn btn-sm btn-info w-100 mb-2" data-bs-toggle="modal" data-bs-target="#viewReceiptModal" onclick="viewReceiptDetails({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.description|escapejs }}', '{% if receipt.image %}{{ receipt.image.url }}{% endif %}', '{{ receipt.date|date:'M d, Y' }}')">
                             <i class="fas fa-eye"></i> View
                         </button>
-                        <button type="button" class="btn btn-sm btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#editReceiptModal" onclick="prepareEditReceipt({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.description|escapejs }}')">
+                        <button type="button" class="btn btn-sm btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#editReceiptModal" onclick="prepareEditReceipt({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.description|escapejs }}', '{{ receipt.date|date:'Y-m-d' }}')">
                             <i class="fas fa-edit"></i> Edit
                         </button>
                         <button type="button" class="btn btn-sm btn-danger w-100" onclick="deleteReceipt({{ receipt.id }}, '{{ receipt.name|escapejs }}')">
@@ -109,6 +109,13 @@
                     <div class="mb-3">
                         <label for="receiptDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="receiptDescription" name="description" rows="3" placeholder="Add details about this receipt..."></textarea>
+                    </div>
+
+                    <!-- Date Field -->
+                    <div class="mb-3">
+                        <label for="receiptDate" class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="receiptDate" name="date" required>
+                        <small class="form-text text-muted">Date of receipt</small>
                     </div>
 
                     <!-- Image Upload -->
@@ -181,6 +188,13 @@
                     <div class="mb-3">
                         <label for="editReceiptDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="editReceiptDescription" name="description" rows="3" placeholder="Add details about this receipt..."></textarea>
+                    </div>
+
+                    <!-- Date Field -->
+                    <div class="mb-3">
+                        <label for="editReceiptDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="editReceiptDate" name="date">
+                        <small class="form-text text-muted">Date of receipt</small>
                     </div>
 
                     <!-- Image Upload -->
@@ -298,7 +312,7 @@ document.getElementById('addReceiptForm').addEventListener('submit', async (e) =
 });
 
 // View Receipt Details
-function viewReceiptDetails(receiptId, name, description, imageUrl) {
+function viewReceiptDetails(receiptId, name, description, imageUrl, date) {
     document.getElementById('viewReceiptName').textContent = name;
     document.getElementById('viewReceiptDescription').textContent = description || 'No description provided';
 
@@ -359,10 +373,11 @@ async function deleteReceipt(receiptId, receiptName) {
 }
 
 // Prepare Edit Receipt
-function prepareEditReceipt(receiptId, name, description) {
+function prepareEditReceipt(receiptId, name, description, date) {
     document.getElementById('editReceiptId').value = receiptId;
     document.getElementById('editReceiptName').value = name;
     document.getElementById('editReceiptDescription').value = description;
+    document.getElementById('editReceiptDate').value = date;
     document.getElementById('editReceiptErrorAlert').style.display = 'none';
 }
 

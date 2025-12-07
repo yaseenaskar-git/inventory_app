@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class Inventory(models.Model):
@@ -76,12 +77,12 @@ class Receipt(models.Model):
     inventory = models.ForeignKey(Inventory, on_delete=models.CASCADE, related_name='receipts')
     name = models.CharField(max_length=255)  # Required field
     description = models.TextField(blank=True)
+    date = models.DateField(default=timezone.now)  # User-entered date
     image = models.ImageField(upload_to='receipts/', blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-date']
 
     def __str__(self):
-        return f"{self.name} - {self.created_at.date()}"
+        return f"{self.name} - {self.date}"

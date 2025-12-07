@@ -629,15 +629,20 @@ def create_receipt(request, inventory_id):
     try:
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '')
+        date = request.POST.get('date', '')
         image = request.FILES.get('image')
         
         if not name:
             return JsonResponse({'success': False, 'error': 'Receipt name is required'}, status=400)
         
+        if not date:
+            return JsonResponse({'success': False, 'error': 'Date is required'}, status=400)
+        
         receipt = Receipt.objects.create(
             inventory=inventory,
             name=name,
             description=description,
+            date=date,
             image=image
         )
         
@@ -661,6 +666,7 @@ def update_receipt(request, inventory_id, receipt_id):
     try:
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '')
+        date = request.POST.get('date', '')
         image = request.FILES.get('image')
         
         if not name:
@@ -668,6 +674,9 @@ def update_receipt(request, inventory_id, receipt_id):
         
         receipt.name = name
         receipt.description = description
+        
+        if date:
+            receipt.date = date
         
         if image:
             if receipt.image:
