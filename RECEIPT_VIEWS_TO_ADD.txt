@@ -1,0 +1,73 @@
+# Receipt Views - Append to end of accounts/views.py
+
+
+@login_required(login_url='login')
+def receipt_gallery(request, inventory_id):
+    """Display all receipts for an inventory"""
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    receipts = inventory.receipts.all()
+    
+    return render(request, 'accounts/receipt_gallery.html', {
+        'inventory': inventory,
+        'receipts': receipts
+    })
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def create_receipt(request, inventory_id):
+    """Create a new receipt"""
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    
+    try:
+        name = request.POST.get('name', '').strip()
+        date = request.POST.get('date')
+        description = request.POST.get('description', '')
+        image = request.FILES.get('image')
+        
+        # Validate required fields
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Receipt name is required'}, status=400)
+        
+        if not date:
+            return JsonResponse({'success': False, 'error': 'Date is required'}, status=400)
+        
+        # Create receipt
+        receipt = Receipt.objects.create(
+            inventory=inventory,
+            name=name,
+            date=date,
+            description=description,
+            image=image
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'receipt_id': receipt.id,
+            'message': 'Receipt created successfully'
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def delete_receipt(request, inventory_id, receipt_id):
+    """Delete a receipt"""
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    receipt = get_object_or_404(Receipt, id=receipt_id, inventory=inventory)
+    
+    try:
+        # Delete the image file if it exists
+        if receipt.image:
+            receipt.image.delete()
+        
+        receipt.delete()
+        return JsonResponse({'success': True, 'message': 'Receipt deleted successfully'})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

@@ -23,4 +23,8 @@ urlpatterns = [
     path('inventories/<int:inventory_id>/items/<int:item_id>/detail/', views.item_detail_api, name='item_detail_api'),
     path('inventories/<int:inventory_id>/bulk/', views.bulk_action, name='bulk_action'),
     path('categories/create/', views.create_category, name='create_category'),
+    # Receipt URLs
+    path('inventories/<int:inventory_id>/receipts/', views.receipt_gallery, name='receipt_gallery'),
+    path('inventories/<int:inventory_id>/receipts/create/', views.create_receipt, name='create_receipt'),
+    path('inventories/<int:inventory_id>/receipts/<int:receipt_id>/delete/', views.delete_receipt, name='delete_receipt'),
 ]

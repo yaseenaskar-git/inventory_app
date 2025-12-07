@@ -9,7 +9,7 @@ from django.views import View
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 from .forms import RegisterForm, LoginForm, ItemForm
-from .models import Inventory, Item, Category
+from .models import Inventory, Item, Category, Receipt
 import json
 from sorl.thumbnail import get_thumbnail
 from django.core.paginator import Paginator
@@ -605,3 +605,70 @@ def delete_account(request):
             'error': str(e)
         }, status=500)
 
+
+
+# Receipt Views
+@login_required(login_url='login')
+def receipt_gallery(request, inventory_id):
+    """Display all receipts for an inventory"""
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    receipts = inventory.receipts.all()
+    
+    return render(request, 'accounts/receipt_gallery.html', {
+        'inventory': inventory,
+        'receipts': receipts
+    })
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def create_receipt(request, inventory_id):
+    """Create a new receipt"""
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    
+    try:
+        name = request.POST.get('name', '').strip()
+        date = request.POST.get('date')
+        description = request.POST.get('description', '')
+        image = request.FILES.get('image')
+        
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Receipt name is required'}, status=400)
+        
+        if not date:
+            return JsonResponse({'success': False, 'error': 'Date is required'}, status=400)
+        
+        receipt = Receipt.objects.create(
+            inventory=inventory,
+            name=name,
+            date=date,
+            description=description,
+            image=image
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'receipt_id': receipt.id,
+            'message': 'Receipt created successfully'
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def delete_receipt(request, inventory_id, receipt_id):
+    """Delete a receipt"""
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    receipt = get_object_or_404(Receipt, id=receipt_id, inventory=inventory)
+    
+    try:
+        if receipt.image:
+            receipt.image.delete()
+        
+        receipt.delete()
+        return JsonResponse({'success': True, 'message': 'Receipt deleted successfully'})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

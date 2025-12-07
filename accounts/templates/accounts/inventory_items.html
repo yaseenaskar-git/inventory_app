@@ -20,6 +20,7 @@
                 <option value="quantity_asc" {% if request.GET.sort == 'quantity_asc' %}selected{% endif %}>Quantity: Low → High</option>
                 <option value="quantity_desc" {% if request.GET.sort == 'quantity_desc' %}selected{% endif %}>Quantity: High → Low</option>
             </select>
+            <a href="{% url 'receipt_gallery' inventory.id %}" class="btn btn-info">📋 Receipt Gallery</a>
             <button id="createItemBtn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#itemModal">➕ Add Item</button>
         </div>
     </div>
