@@ -140,3 +140,28 @@ jobs:
           --platform managed \
           --region ${{ env.GCP_REGION }} \
           --format='value(status.url)'
+
+    - name: Health Check - Verify Deployment
+      run: |
+        # Get the Cloud Run service URL
+        SERVICE_URL=$(gcloud run services describe ${{ env.DEPLOYMENT_NAME }} \
+          --platform managed \
+          --region ${{ env.GCP_REGION }} \
+          --format='value(status.url)')
+        
+        echo "Testing service at: $SERVICE_URL"
+        
+        # Wait for service to be ready
+        sleep 5
+        
+        # Check if the service responds
+        for i in {1..10}; do
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" $SERVICE_URL)
+          if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "302" ]; then
+            echo "✓ Service is healthy (HTTP $RESPONSE)"
+            break
+          else
+            echo "Attempt $i: HTTP $RESPONSE - retrying..."
+            sleep 3
+          fi
+        done
