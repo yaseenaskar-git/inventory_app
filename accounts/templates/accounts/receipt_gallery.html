@@ -64,10 +64,16 @@
                         </p>
                     </div>
 
+                    <!-- Edit Button (Pencil Icon) -->
+                    <button type="button" class="btn btn-sm btn-link edit-receipt-btn" data-receipt-id="{{ receipt.id }}" style="position:absolute; right:8px; top:8px; z-index:20; padding:0; border:none; font-size:18px; cursor:pointer; background:rgba(255,255,255,0.9); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center;" data-bs-toggle="modal" data-bs-target="#editReceiptModal" onclick="prepareEditReceipt({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.date }}', '{{ receipt.description|escapejs }}')">✏️</button>
+
                     <!-- Action Buttons -->
                     <div class="card-footer bg-white border-top">
                         <button type="button" class="btn btn-sm btn-info w-100 mb-2" data-bs-toggle="modal" data-bs-target="#viewReceiptModal" onclick="viewReceiptDetails({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.date }}', '{{ receipt.description|escapejs }}', '{% if receipt.image %}{{ receipt.image.url }}{% endif %}')">
                             <i class="fas fa-eye"></i> View
+                        </button>
+                        <button type="button" class="btn btn-sm btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#editReceiptModal" onclick="prepareEditReceipt({{ receipt.id }}, '{{ receipt.name|escapejs }}', '{{ receipt.date }}', '{{ receipt.description|escapejs }}')">
+                            <i class="fas fa-edit"></i> Edit
                         </button>
                         <button type="button" class="btn btn-sm btn-danger w-100" onclick="deleteReceipt({{ receipt.id }}, '{{ receipt.name|escapejs }}')">
                             <i class="fas fa-trash"></i> Delete
@@ -162,6 +168,58 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Receipt Modal -->
+<div class="modal fade" id="editReceiptModal" tabindex="-1" aria-labelledby="editReceiptLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editReceiptLabel">Edit Receipt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editReceiptForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" id="editReceiptId" name="receipt_id">
+                <div class="modal-body">
+                    <!-- Name Field -->
+                    <div class="mb-3">
+                        <label for="editReceiptName" class="form-label">Receipt Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editReceiptName" name="name" placeholder="e.g., Office Supplies" required>
+                    </div>
+
+                    <!-- Date Field -->
+                    <div class="mb-3">
+                        <label for="editReceiptDate" class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="editReceiptDate" name="date" required>
+                    </div>
+
+                    <!-- Description Field -->
+                    <div class="mb-3">
+                        <label for="editReceiptDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editReceiptDescription" name="description" rows="3" placeholder="Add details about this receipt..."></textarea>
+                    </div>
+
+                    <!-- Image Upload -->
+                    <div class="mb-3">
+                        <label for="editReceiptImage" class="form-label">Upload New Image (optional)</label>
+                        <input type="file" class="form-control" id="editReceiptImage" name="image" accept="image/*">
+                        <small class="form-text text-muted">Leave blank to keep current image. Supported formats: JPG, PNG, GIF</small>
+                    </div>
+
+                    <!-- Error Alert -->
+                    <div id="editReceiptErrorAlert" class="alert alert-danger" role="alert" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitEditReceiptBtn">
+                        <span id="submitEditBtnText">Update Receipt</span>
+                        <span id="submitEditBtnSpinner" class="spinner-border spinner-border-sm ms-2" style="display: none;"></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -326,6 +384,89 @@ async function deleteReceipt(receiptId, receiptName) {
         alert('Error deleting receipt: ' + error.message);
     }
 }
+
+// Prepare Edit Receipt
+function prepareEditReceipt(receiptId, name, date, description) {
+    document.getElementById('editReceiptId').value = receiptId;
+    document.getElementById('editReceiptName').value = name;
+    document.getElementById('editReceiptDate').value = date;
+    document.getElementById('editReceiptDescription').value = description;
+    document.getElementById('editReceiptErrorAlert').style.display = 'none';
+}
+
+// Handle Edit Receipt Form Submission
+document.getElementById('editReceiptForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const receiptId = document.getElementById('editReceiptId').value;
+    const formData = new FormData(document.getElementById('editReceiptForm'));
+    const submitBtn = document.getElementById('submitEditReceiptBtn');
+    const submitBtnText = document.getElementById('submitEditBtnText');
+    const submitBtnSpinner = document.getElementById('submitEditBtnSpinner');
+    const errorAlert = document.getElementById('editReceiptErrorAlert');
+
+    // Validation
+    const name = document.getElementById('editReceiptName').value.trim();
+    const date = document.getElementById('editReceiptDate').value;
+
+    if (!name) {
+        errorAlert.textContent = 'Receipt name is required';
+        errorAlert.style.display = 'block';
+        return;
+    }
+
+    if (!date) {
+        errorAlert.textContent = 'Date is required';
+        errorAlert.style.display = 'block';
+        return;
+    }
+
+    errorAlert.style.display = 'none';
+
+    // Disable button and show spinner
+    submitBtn.disabled = true;
+    submitBtnText.style.display = 'none';
+    submitBtnSpinner.style.display = 'inline-block';
+
+    try {
+        const response = await fetch(`/accounts/inventories/${inventoryId}/receipts/${receiptId}/update/`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editReceiptModal'));
+            modal.hide();
+
+            // Show success message
+            errorAlert.className = 'alert alert-success';
+            errorAlert.textContent = data.message;
+            errorAlert.style.display = 'block';
+
+            // Reload page after 1 second
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            errorAlert.className = 'alert alert-danger';
+            errorAlert.textContent = data.error || 'Failed to update receipt';
+            errorAlert.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        errorAlert.className = 'alert alert-danger';
+        errorAlert.textContent = 'Error updating receipt: ' + error.message;
+        errorAlert.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtnText.style.display = 'inline';
+        submitBtnSpinner.style.display = 'none';
+    }
+});
 
 // Set today's date as default
 document.getElementById('receiptDate').valueAsDate = new Date();

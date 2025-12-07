@@ -26,5 +26,6 @@ urlpatterns = [
     # Receipt URLs
     path('inventories/<int:inventory_id>/receipts/', views.receipt_gallery, name='receipt_gallery'),
     path('inventories/<int:inventory_id>/receipts/create/', views.create_receipt, name='create_receipt'),
+    path('inventories/<int:inventory_id>/receipts/<int:receipt_id>/update/', views.update_receipt, name='update_receipt'),
     path('inventories/<int:inventory_id>/receipts/<int:receipt_id>/delete/', views.delete_receipt, name='delete_receipt'),
 ]

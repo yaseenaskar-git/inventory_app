@@ -104,6 +104,46 @@ class ReceiptGalleryIntegrationTests(TestCase):
         self.assertTrue(result['success'])
         self.assertFalse(Receipt.objects.filter(id=receipt.id).exists())
 
+    def test_update_receipt(self):
+        """Test updating a receipt"""
+        receipt = Receipt.objects.create(
+            inventory=self.inventory,
+            name='Original Name',
+            date=date.today(),
+            description='Original description'
+        )
+        url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
+        data = {
+            'name': 'Updated Name',
+            'date': str(date.today()),
+            'description': 'Updated description'
+        }
+        response = self.client.post(url, data=data)
+        result = response.json()
+        
+        self.assertTrue(result['success'])
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.name, 'Updated Name')
+        self.assertEqual(receipt.description, 'Updated description')
+
+    def test_update_receipt_without_name_fails(self):
+        """Test that updating receipt without name fails"""
+        receipt = Receipt.objects.create(
+            inventory=self.inventory,
+            name='Original Name',
+            date=date.today()
+        )
+        url = reverse('update_receipt', args=[self.inventory.id, receipt.id])
+        data = {
+            'name': '',  # Missing name
+            'date': str(date.today())
+        }
+        response = self.client.post(url, data=data)
+        result = response.json()
+        
+        self.assertFalse(result['success'])
+        self.assertIn('name is required', result['error'].lower())
+
     def test_user_cannot_access_other_users_receipts(self):
         """Test that users can't access other users' receipts"""
         other_user = User.objects.create_user(

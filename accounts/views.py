@@ -658,6 +658,45 @@ def create_receipt(request, inventory_id):
 
 @login_required(login_url='login')
 @require_http_methods(["POST"])
+def update_receipt(request, inventory_id, receipt_id):
+    """Update a receipt"""
+    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+    receipt = get_object_or_404(Receipt, id=receipt_id, inventory=inventory)
+    
+    try:
+        name = request.POST.get('name', '').strip()
+        date = request.POST.get('date')
+        description = request.POST.get('description', '')
+        image = request.FILES.get('image')
+        
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Receipt name is required'}, status=400)
+        
+        if not date:
+            return JsonResponse({'success': False, 'error': 'Date is required'}, status=400)
+        
+        receipt.name = name
+        receipt.date = date
+        receipt.description = description
+        
+        if image:
+            if receipt.image:
+                receipt.image.delete()
+            receipt.image = image
+        
+        receipt.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Receipt updated successfully'
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
 def delete_receipt(request, inventory_id, receipt_id):
     """Delete a receipt"""
     inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
