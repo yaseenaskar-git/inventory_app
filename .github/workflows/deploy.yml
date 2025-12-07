@@ -128,7 +128,7 @@ jobs:
           --platform managed \
           --region ${{ env.GCP_REGION }} \
           --allow-unauthenticated \
-          --set-env-vars "DEBUG=False,ALLOWED_HOSTS=*" \
+          --set-env-vars "DEBUG=False,ALLOWED_HOSTS=*,CLOUD_RUN_URL=inventory-app-${{ env.PROJECT_ID }}.${{ env.GCP_REGION }}.run.app" \
           --memory 512Mi \
           --cpu 1 \
           --timeout 3600s \

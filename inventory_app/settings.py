@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,6 +27,22 @@ SECRET_KEY = 'django-insecure-v0(ai^4rse$(_=s6106tj$1d8cv6(g#90w*_hon37q_!bjii6^
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']  # Cloud Run needs this, restrict in production
+
+# CSRF Configuration for Cloud Run
+# Get Cloud Run domain from environment or use default
+CLOUD_RUN_URL = os.environ.get('CLOUD_RUN_URL', '')
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.run.app',
+    'https://localhost:8000',
+    'http://localhost:8000',
+]
+if CLOUD_RUN_URL:
+    CSRF_TRUSTED_ORIGINS.insert(0, f'https://{CLOUD_RUN_URL}')
+
+# CSRF Settings
+CSRF_COOKIE_SECURE = True  # Secure in production
+CSRF_COOKIE_HTTPONLY = False  # Must be False for CSRF token to work with forms
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 
 # Application definition
