@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const response = await fetch(url, {
                     method: 'GET',
-                    credentials: 'include',  // Changed from 'same-origin' to 'include'
+                    credentials: 'same-origin',  // Send cookies for same-origin
                     headers: {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'

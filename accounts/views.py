@@ -347,14 +347,15 @@ def create_category(request):
 
 
 def item_detail_api(request, inventory_id, item_id):
-    # Check authentication manually to return JSON error instead of redirect
-    if not request.user.is_authenticated:
-        return JsonResponse({
-            'success': False,
-            'error': 'Authentication required'
-        }, status=401)
-    
     try:
+        # Verify user is authenticated
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'success': False,
+                'error': 'Authentication required'
+            }, status=401)
+        
+        # Verify user owns the inventory
         inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
         item = get_object_or_404(Item, id=item_id, inventory=inventory)
         
