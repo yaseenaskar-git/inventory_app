@@ -191,12 +191,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`Fetching item details for inventory ${inventoryId}, item ${id}`);
                 const response = await fetch(`/accounts/inventories/${inventoryId}/items/${id}/detail/`);
                 console.log(`Response status: ${response.status}`);
+                
                 if (!response.ok) {
                     throw new Error(`Server returned ${response.status}: ${response.statusText}`);
                 }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error(`Expected JSON but got ${contentType}. Server may be returning an error page.`);
+                }
+                
                 const res = await response.json();
                 console.log('Item data:', res);
-                if(!res.success){ alert('Could not load item: ' + (res.error || 'Unknown error')); return; }
+                
+                if(!res.success){ 
+                    alert('Could not load item: ' + (res.error || 'Unknown error')); 
+                    return; 
+                }
+                
                 const item = res.item;
                 document.getElementById('itemModalTitle').textContent = 'Edit Item';
                 document.getElementById('itemId').value = item.id;

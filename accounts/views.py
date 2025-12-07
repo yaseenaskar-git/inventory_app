@@ -348,31 +348,38 @@ def create_category(request):
 
 @login_required(login_url='login')
 def item_detail_api(request, inventory_id, item_id):
-    inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
-    item = get_object_or_404(Item, id=item_id, inventory=inventory)
-    
-    # Handle thumbnail generation safely
-    thumbnail_url = None
-    if item.image:
-        try:
-            thumbnail_url = get_thumbnail(item.image, '300x300', quality=85).url
-        except Exception as e:
-            # Fallback to original image if thumbnail fails
-            thumbnail_url = item.image.url
-    
-    return JsonResponse({
-        'success': True,
-        'item': {
-            'id': item.id,
-            'name': item.name,
-            'quantity': item.quantity,
-            'brand': item.brand,
-            'description': item.description,
-            'expiration_date': item.expiration_date.isoformat() if item.expiration_date else None,
-            'image_url': item.image.url if item.image else None,
-            'thumbnail_url': thumbnail_url,
-        }
-    })
+    try:
+        inventory = get_object_or_404(Inventory, id=inventory_id, user=request.user)
+        item = get_object_or_404(Item, id=item_id, inventory=inventory)
+        
+        # Handle thumbnail generation safely
+        thumbnail_url = None
+        if item.image:
+            try:
+                thumbnail_url = get_thumbnail(item.image, '300x300', quality=85).url
+            except Exception as e:
+                # Fallback to original image if thumbnail fails
+                print(f"Thumbnail generation failed: {str(e)}")
+                thumbnail_url = item.image.url if item.image else None
+        
+        return JsonResponse({
+            'success': True,
+            'item': {
+                'id': item.id,
+                'name': item.name,
+                'quantity': item.quantity,
+                'brand': item.brand,
+                'description': item.description,
+                'expiration_date': item.expiration_date.isoformat() if item.expiration_date else None,
+                'image_url': item.image.url if item.image else None,
+                'thumbnail_url': thumbnail_url,
+            }
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 
 @login_required(login_url='login')
